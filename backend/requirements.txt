@@ -8,3 +8,6 @@ flask-login==0.6.3
 pymysql==1.1.0
 werkzeug==2.3.7
 numpy==1.26.4
+requests==2.31.0
+cryptography==42.0.5
+coverage==7.4.3
