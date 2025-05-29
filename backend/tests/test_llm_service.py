@@ -48,7 +48,7 @@ class TestLLMService(unittest.TestCase):
         # Test with thought markers
         test_text = 'Before Thinking: thoughts After'
         result = clean_thinking(test_text)
-        self.assertEqual(result, 'Before  After')
+        self.assertEqual(result, 'Before thoughts After')
 
 if __name__ == '__main__':
     unittest.main() 

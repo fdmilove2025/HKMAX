@@ -1,6 +1,7 @@
 import sys
 import os
 import unittest
+import json
 from unittest.mock import patch, MagicMock
 
 # Add the parent directory to the sys.path
@@ -26,7 +27,7 @@ class TestPortfolioAnalyzer(unittest.TestCase):
     @patch('app.llm_service.generate_response')
     def test_conservative_risk_profile(self, mock_generate_response):
         # Mock LLM response
-        mock_generate_response.return_value = str(self.mock_llm_response)
+        mock_generate_response.return_value = json.dumps(self.mock_llm_response)
         
         # User input for a conservative profile
         user_data = {
@@ -75,7 +76,7 @@ class TestPortfolioAnalyzer(unittest.TestCase):
         mock_response["riskProfile"] = "Moderate"
         mock_response["portfolioAllocation"][0]["value"] = 50  # Equities
         mock_response["portfolioAllocation"][1]["value"] = 30  # Bonds
-        mock_generate_response.return_value = str(mock_response)
+        mock_generate_response.return_value = json.dumps(mock_response)
         
         # User input for a moderate profile
         user_data = {
@@ -111,7 +112,7 @@ class TestPortfolioAnalyzer(unittest.TestCase):
         mock_response["riskProfile"] = "Aggressive"
         mock_response["portfolioAllocation"][0]["value"] = 70  # Equities
         mock_response["portfolioAllocation"][1]["value"] = 10  # Bonds
-        mock_generate_response.return_value = str(mock_response)
+        mock_generate_response.return_value = json.dumps(mock_response)
         
         # User input for an aggressive profile
         user_data = {
