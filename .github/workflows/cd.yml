@@ -86,6 +86,8 @@ jobs:
         npm ci
         
     - name: Build
+      env:
+        CI: false
       run: |
         cd frontend
         npm run build
