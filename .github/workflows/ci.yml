@@ -91,7 +91,12 @@ jobs:
       run: npm ci
       
     - name: Run linting
-      run: npm run lint
+      run: |
+        npm run lint || {
+          echo "Linting failed. Running with --fix to attempt automatic fixes..."
+          npm run lint:fix
+          exit 1
+        }
       
     - name: Run tests
       run: npm test
