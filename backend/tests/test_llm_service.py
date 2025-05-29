@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 from tests.mock_llm import mock_llm
-from llm_service import LLMService
+from app.llm_service import LLMService
 
 class TestLLMService(unittest.TestCase):
     def setUp(self):

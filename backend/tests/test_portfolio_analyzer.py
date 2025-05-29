@@ -1,11 +1,12 @@
 import sys
 import os
 import unittest
+from unittest.mock import patch
 
 # Add the parent directory to the sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.portfolio_analyzer import analyze_risk_profile, generate_portfolio_allocation, recommend_securities
+from app.portfolio_analyzer import analyze_portfolio_combined, recommend_securities
 
 class TestPortfolioAnalyzer(unittest.TestCase):
     
@@ -21,14 +22,14 @@ class TestPortfolioAnalyzer(unittest.TestCase):
             'experience': 'Beginner'
         }
         
-        # Calculate risk profile
-        risk_profile = analyze_risk_profile(user_data)
+        # Calculate risk profile and allocation
+        result = analyze_portfolio_combined(user_data)
         
         # Check if risk profile is correct
-        self.assertEqual(risk_profile, 'Conservative')
+        self.assertEqual(result["riskProfile"], 'Conservative')
         
         # Check portfolio allocation
-        allocation = generate_portfolio_allocation(risk_profile)
+        allocation = result["portfolioAllocation"]
         
         # Verify allocation percentages
         equities_allocation = next(item for item in allocation if item["name"] == "Equities")
@@ -38,7 +39,7 @@ class TestPortfolioAnalyzer(unittest.TestCase):
         self.assertEqual(bonds_allocation["value"], 50)
         
         # Check securities recommendations
-        securities = recommend_securities(risk_profile, user_data['investmentGoal'], allocation)
+        securities = recommend_securities(user_data, allocation)
         
         # Verify there are securities recommended
         self.assertTrue(len(securities) > 0)
@@ -62,14 +63,14 @@ class TestPortfolioAnalyzer(unittest.TestCase):
             'experience': 'Intermediate'
         }
         
-        # Calculate risk profile
-        risk_profile = analyze_risk_profile(user_data)
+        # Calculate risk profile and allocation
+        result = analyze_portfolio_combined(user_data)
         
         # Check if risk profile is correct
-        self.assertEqual(risk_profile, 'Moderate')
+        self.assertEqual(result["riskProfile"], 'Moderate')
         
         # Check portfolio allocation
-        allocation = generate_portfolio_allocation(risk_profile)
+        allocation = result["portfolioAllocation"]
         
         # Verify allocation percentages
         equities_allocation = next(item for item in allocation if item["name"] == "Equities")
@@ -90,14 +91,14 @@ class TestPortfolioAnalyzer(unittest.TestCase):
             'experience': 'Advanced'
         }
         
-        # Calculate risk profile
-        risk_profile = analyze_risk_profile(user_data)
+        # Calculate risk profile and allocation
+        result = analyze_portfolio_combined(user_data)
         
         # Check if risk profile is correct
-        self.assertEqual(risk_profile, 'Aggressive')
+        self.assertEqual(result["riskProfile"], 'Aggressive')
         
         # Check portfolio allocation
-        allocation = generate_portfolio_allocation(risk_profile)
+        allocation = result["portfolioAllocation"]
         
         # Verify allocation percentages
         equities_allocation = next(item for item in allocation if item["name"] == "Equities")
