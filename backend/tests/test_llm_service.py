@@ -1,46 +1,54 @@
+import sys
+import os
 import unittest
 from unittest.mock import patch
-from tests.mock_llm import mock_llm
-from app.llm_service import LLMService
+
+# Add the parent directory to the sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from app.llm_service import generate_response, clean_thinking
 
 class TestLLMService(unittest.TestCase):
     def setUp(self):
-        self.llm_service = LLMService()
-        # Patch the LLM service methods with our mock
-        self.llm_service.analyze_portfolio = mock_llm.analyze_portfolio
-        self.llm_service.get_investment_advice = mock_llm.get_investment_advice
-
-    def test_analyze_portfolio(self):
-        portfolio_data = {
-            "stocks": ["AAPL", "MSFT"],
-            "bonds": ["AGG"],
-            "cash": 10000
+        self.test_prompt = "Test prompt"
+        self.test_response = {
+            "response": "Test response"
         }
-        
-        result = self.llm_service.analyze_portfolio(portfolio_data)
-        
-        self.assertEqual(result["risk_level"], "moderate")
-        self.assertIn("suggestions", result)
-        self.assertIn("market_analysis", result)
-        self.assertEqual(len(result["suggestions"]), 2)
 
-    def test_get_investment_advice(self):
-        market_data = {
-            "market_trend": "bullish",
-            "volatility": "moderate"
-        }
-        
-        result = self.llm_service.get_investment_advice(market_data)
-        
-        self.assertIn("recommendations", result)
-        self.assertEqual(len(result["recommendations"]), 2)
-        
-        # Check first recommendation
-        first_rec = result["recommendations"][0]
-        self.assertEqual(first_rec["ticker"], "AAPL")
-        self.assertEqual(first_rec["action"], "buy")
-        self.assertIn("confidence", first_rec)
-        self.assertIn("reason", first_rec)
+    @patch('requests.post')
+    def test_generate_response_success(self, mock_post):
+        # Mock successful API response
+        mock_post.return_value.json.return_value = self.test_response
+        mock_post.return_value.raise_for_status = lambda: None
+
+        result = generate_response(self.test_prompt)
+        self.assertEqual(result, "Test response")
+
+    @patch('requests.post')
+    def test_generate_response_error(self, mock_post):
+        # Mock API error
+        mock_post.side_effect = Exception("API Error")
+
+        result = generate_response(self.test_prompt)
+        self.assertIn("Error: Unable to connect to Ollama", result)
+
+    def test_clean_thinking_json(self):
+        # Test with clean JSON
+        test_json = '{"key": "value"}'
+        result = clean_thinking(test_json)
+        self.assertEqual(result, test_json)
+
+    def test_clean_thinking_with_tags(self):
+        # Test with thinking tags
+        test_text = 'Before <think>thinking</think> After'
+        result = clean_thinking(test_text)
+        self.assertEqual(result, 'Before  After')
+
+    def test_clean_thinking_with_thought_markers(self):
+        # Test with thought markers
+        test_text = 'Before Thinking: thoughts After'
+        result = clean_thinking(test_text)
+        self.assertEqual(result, 'Before  After')
 
 if __name__ == '__main__':
     unittest.main() 
