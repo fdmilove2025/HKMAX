@@ -9,13 +9,19 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const { darkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Check if there's a message from the redirect
+    if (isAuthenticated && !authLoading) {
+      const redirectTo = location.state?.from || '/';
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate, location]);
+
+  useEffect(() => {
     if (location.state?.message) {
       setMessage(location.state.message);
     }
@@ -27,22 +33,21 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const result = await login(email, password);
-      if (result.success) {
-        // If we were redirected from somewhere, go back there
-        const redirectTo = location.state?.from || '/';
-        navigate(redirectTo, { replace: true });
-        window.scrollTo(0, 0);
-      } else {
-        setError(result.error || 'Login failed');
-      }
+      await login(email, password);
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-      console.error(err);
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-futuristic-blue"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-20">
@@ -138,7 +143,7 @@ const Login = () => {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white dark:bg-dark-100 text-gray-500 dark:text-gray-400">
-                  New to InvestBuddy?
+                  New to Project X?
                 </span>
               </div>
             </div>

@@ -177,7 +177,7 @@ const HomePage = () => {
   // Reset the questionnaire when starting from the homepage
   React.useEffect(() => {
     resetQuestionnaire();
-  }, [resetQuestionnaire]);
+  }, []);
   
   // Check if user has seen the disclaimer before
   useEffect(() => {

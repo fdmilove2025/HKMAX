@@ -1,161 +1,116 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
 // API base URL - adjust if needed
-const API_URL = 'http://localhost:5001';
+const API_URL = 'http://localhost:5000';
 
 const AuthContext = createContext();
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
+  // Simple function to check if token is valid
+  const isTokenValid = (token) => {
+    if (!token) return false;
+    try {
+      // Basic JWT validation - check if token is expired
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 > Date.now();
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Check authentication status on mount
   useEffect(() => {
-    // Check if the user is logged in on page load
-    const checkUser = async () => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token || !isTokenValid(token)) {
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch(`${API_URL}/api/auth/user`, {
-          method: 'GET',
-          credentials: 'include',
           headers: {
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
           },
         });
 
         if (response.ok) {
           const data = await response.json();
-          setCurrentUser(data.user);
+          setUser(data.user);
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('token');
+          setIsAuthenticated(false);
+          setUser(null);
         }
-      } catch (err) {
-        console.error('Failed to retrieve user:', err);
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
-    checkUser();
+    checkAuth();
   }, []);
 
-  const register = async (email, username, password, age) => {
-    setError('');
-    try {
-      console.log('Registering with:', { email, username, password, age });
-
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ email, username, password, age }),
-      });
-
-      // Log response details for debugging
-      console.log('Registration response status:', response.status);
-
-      // For non-JSON responses, we need special handling
-      const contentType = response.headers.get('content-type');
-      let data;
-
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        console.error('Received non-JSON response:', text);
-        throw new Error(`Server responded with non-JSON content: ${text.substring(0, 100)}...`);
-      }
-
-      console.log('Registration response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
-
-      return { success: true, data };
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
-    }
-  };
-
   const login = async (email, password) => {
-    setError('');
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
         body: JSON.stringify({ email, password }),
       });
 
-      // For non-JSON responses, we need special handling
-      const contentType = response.headers.get('content-type');
-      let data;
-
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        console.error('Received non-JSON response:', text);
-        throw new Error(`Server responded with non-JSON content: ${text.substring(0, 100)}...`);
-      }
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
       }
 
-      setCurrentUser(data.user);
-      return { success: true };
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+      if (!data.token || !data.user) {
+        throw new Error('Invalid server response');
+      }
+
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+      setIsAuthenticated(true);
+      
+      return data;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
     }
   };
 
-  const logout = async () => {
-    setError('');
-    try {
-      const response = await fetch(`${API_URL}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Logout failed');
-      }
-
-      setCurrentUser(null);
-      return { success: true };
-    } catch (err) {
-      console.error('Logout error:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
-    }
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
   const value = {
-    currentUser,
+    isAuthenticated,
+    user,
     loading,
-    error,
-    register,
     login,
     logout,
+    setUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

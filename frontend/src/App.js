@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { PortfolioProvider } from './context/PortfolioContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 
 // Pages
@@ -14,6 +14,23 @@ import ExploreSecuritiesPage from './pages/ExploreSecuritiesPage';
 import PortfolioHistoryPage from './pages/PortfolioHistoryPage';
 import Login from './components/Login';
 import Register from './components/Register';
+import ProfilePage from './pages/ProfilePage';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+
+  return children;
+};
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -63,25 +80,43 @@ const AppContent = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="*" element={
-            <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/questionnaire" element={<QuestionnairePage />} />
-                <Route path="/results" element={<ResultsPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/explore" element={<ExploreSecuritiesPage />} />
-                <Route path="/portfolio" element={<PortfolioHistoryPage />} />
-              </Routes>
-            </div>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/questionnaire" element={
+            <ProtectedRoute>
+              <QuestionnairePage />
+            </ProtectedRoute>
           } />
+          <Route path="/results" element={
+            <ProtectedRoute>
+              <ResultsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/explore" element={
+            <ProtectedRoute>
+              <ExploreSecuritiesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/portfolio" element={
+            <ProtectedRoute>
+              <PortfolioHistoryPage />
+            </ProtectedRoute>
+          } />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
       
       <footer className="glass-panel fixed bottom-0 left-0 right-0 border-t border-gray-200 dark:border-dark-300/30 transition-all duration-300">
         <div className="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} InvestBuddy - Eagles
+            &copy; {new Date().getFullYear()} Project X - Code Baggers
           </div>
           <div className="text-xs text-gray-400 dark:text-gray-500">
             Using AI to build smarter portfolios
@@ -96,9 +131,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-      <PortfolioProvider>
-        <AppContent />
-      </PortfolioProvider>
+        <PortfolioProvider>
+          <AppContent />
+        </PortfolioProvider>
       </AuthProvider>
     </ThemeProvider>
   );

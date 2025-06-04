@@ -4,7 +4,7 @@ const AboutPage = () => {
   return (
     <div className="space-y-10">
       <section className="text-center">
-        <h1 className="gradient-text mb-6">About InvestBuddy</h1>
+        <h1 className="gradient-text mb-6">About Project X</h1>
         <p className="text-xl max-w-3xl mx-auto text-gray-700 dark:text-gray-300">
           Your AI-powered investment companion for building smarter portfolios
         </p>
@@ -13,7 +13,7 @@ const AboutPage = () => {
       <section className="glass-panel rounded-xl p-8 max-w-4xl mx-auto">
         <h2 className="text-2xl mb-4 gradient-text">Our Mission</h2>
         <p className="mb-6 text-gray-700 dark:text-gray-300">
-          InvestBuddy was created to democratize investment advice and portfolio optimization. 
+          Project X was created to democratize investment advice and portfolio optimization. 
           We believe everyone deserves access to sophisticated investment tools that were previously 
           only available to professional investors.
         </p>
@@ -88,7 +88,7 @@ const AboutPage = () => {
       <section className="text-center max-w-4xl mx-auto">
         <h2 className="text-2xl mb-6 gradient-text">Start Your Investment Journey Today</h2>
         <p className="mb-8 text-gray-700 dark:text-gray-300">
-          Join thousands of users who have already optimized their investment portfolios with InvestBuddy.
+          Join thousands of users who have already optimized their investment portfolios with Project X.
         </p>
         
         <button className="btn-primary">

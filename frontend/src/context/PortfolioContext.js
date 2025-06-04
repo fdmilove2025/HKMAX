@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import { API_URL } from '../config';
 
 const PortfolioContext = createContext();
 
@@ -64,7 +65,7 @@ export const PortfolioProvider = ({ children }) => {
   const fetchFinancialTips = async () => {
     try {
       console.log("Fetching financial tips...");
-      const response = await fetch('http://localhost:5001/api/tips');
+      const response = await fetch(`${API_URL}/api/tips`);
       if (!response.ok) {
         throw new Error(`Failed to fetch tips: ${response.status}`);
       }

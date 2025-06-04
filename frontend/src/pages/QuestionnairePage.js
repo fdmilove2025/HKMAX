@@ -847,11 +847,11 @@ const QuestionnairePage = () => {
     loading,
     setLoading
   } = usePortfolio();
-  const { currentUser, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   useEffect(() => {
     // Redirect to login if user is not authenticated
-    if (!currentUser && !authLoading) {
+    if (!user && !authLoading) {
       navigate('/login', { state: { from: '/questionnaire', message: 'You must be logged in to take the questionnaire.' } });
     }
     
@@ -860,10 +860,10 @@ const QuestionnairePage = () => {
     portals.forEach(portal => {
       portal.innerHTML = '';
     });
-  }, [currentUser, authLoading, navigate, currentStep]);
+  }, [user, authLoading, navigate, currentStep]);
   
   // If still loading auth or not authenticated, don't render the page
-  if (authLoading || !currentUser) {
+  if (authLoading || !user) {
     return <LoadingScreen />;
   }
   
