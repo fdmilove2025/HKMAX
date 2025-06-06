@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
+// API base URL - adjust if needed
+const API_URL = 'http://localhost:5001';
+
 const ProfilePage = () => {
-  const { currentUser, getAuthHeaders } = useAuth();
+  const { currentUser, getAuthHeaders, setCurrentUser, makeAuthenticatedRequest } = useAuth();
   const { isDarkMode } = useTheme();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -36,40 +39,73 @@ const ProfilePage = () => {
     }
     
     try {
-      const response = await fetch('http://localhost:5001/api/profile/update', {
+      console.log('Sending profile update request...');
+      // Make sure we're using the correct endpoint
+      const endpoint = '/api/auth/profile/update';
+      const url = `${API_URL}${endpoint}`;
+      console.log('Using URL:', url);
+      
+      const requestData = {
+        username,
+        email,
+        current_password: currentPassword,
+        new_password: newPassword
+      };
+      console.log('Request data:', requestData);
+      
+      const token = localStorage.getItem('authToken');
+      console.log('Auth token:', token);
+      
+      // Log the full request details
+      console.log('Making request to:', url);
+      console.log('With method:', 'PUT');
+      console.log('With headers:', {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      });
+      console.log('With body:', requestData);
+      
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
-          ...getAuthHeaders(),
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         credentials: 'include',
-        body: JSON.stringify({
-          username,
-          email,
-          current_password: currentPassword,
-          new_password: newPassword
-        })
+        body: JSON.stringify(requestData)
       });
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Received non-JSON response:', text);
+        throw new Error('Server returned non-JSON response');
+      }
+      
       const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update profile');
-      }
-      
-      // Update the auth token if a new one was provided
-      if (data.access_token) {
-        localStorage.setItem('authToken', data.access_token);
-      }
-      
+      console.log('Response data:', data);
+
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      // Update the current user in context
+      if (data.user) {
+        setCurrentUser(data.user);
+      }
+      // Clear password fields
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
       console.error('Profile update error:', error);
-      setMessage({ type: 'error', text: error.message });
+      setMessage({ 
+        type: 'error', 
+        text: error.message || 'Failed to update profile. Please try again.' 
+      });
     } finally {
       setLoading(false);
     }

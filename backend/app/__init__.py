@@ -19,15 +19,30 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
-    # Initialize CORS
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": ["http://localhost:3000"],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
-            "supports_credentials": True
-        }
-    })
+    # Initialize CORS with more permissive settings
+    CORS(app, 
+         resources={r"/api/*": {
+             "origins": ["http://localhost:3000"],
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+             "expose_headers": ["Content-Type", "Authorization"],
+             "supports_credentials": True,
+             "max_age": 3600
+         }},
+         supports_credentials=True)
+    
+    # Add after_request handler to ensure CORS headers are set
+    @app.after_request
+    def after_request(response):
+        if request.method == 'OPTIONS':
+            response = make_response()
+            response.status_code = 200
+            # Only set CORS headers for OPTIONS requests
+            response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,Accept,Origin,X-Requested-With'
+            response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+        return response
     
     db.init_app(app)
     
@@ -44,5 +59,11 @@ def create_app():
     
     from app.auth import auth_bp
     app.register_blueprint(auth_bp)
+    
+    # Print all registered routes for debugging
+    print("\nRegistered routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule.endpoint}: {rule.methods} {rule}")
+    print("\n")
     
     return app

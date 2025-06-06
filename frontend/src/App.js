@@ -101,14 +101,11 @@ const AppContent = () => {
         </Routes>
       </main>
       
-      <footer className="glass-panel fixed bottom-0 left-0 right-0 border-t border-gray-200 dark:border-dark-300/30 transition-all duration-300">
-        <div className="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+      <footer className="bg-white border-t border-gray-200 py-4">
+        <div className="container mx-auto px-4">
+          <p className="text-center text-gray-600 text-sm">
             &copy; {new Date().getFullYear()} InvestBuddy - Eagles
-          </div>
-          <div className="text-xs text-gray-400 dark:text-gray-500">
-            Using AI to build smarter portfolios
-          </div>
+          </p>
         </div>
       </footer>
     </div>

@@ -49,13 +49,12 @@ def register():
             return jsonify({'error': 'Username already taken'}), 400
         
         # Create new user
-        hashed_password = generate_password_hash(data['password'])
         new_user = User(
             email=data['email'],
             username=data['username'],
-            password=hashed_password,
             age=age
         )
+        new_user.set_password(data['password'])
         
         # Save to database
         db.session.add(new_user)
@@ -186,4 +185,29 @@ def update_profile():
         print(f"Profile update error: {str(e)}")
         print(traceback.format_exc())
         db.session.rollback()
-        return jsonify({'error': f'Profile update failed: {str(e)}'}), 500 
+        return jsonify({'error': f'Profile update failed: {str(e)}'}), 500
+
+@auth_bp.route('/user', methods=['GET'])
+@jwt_required()
+def get_user():
+    """Get current user information"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'age': user.age
+            }
+        })
+        
+    except Exception as e:
+        print(f"Get user error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Failed to get user: {str(e)}'}), 500 

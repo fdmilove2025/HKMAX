@@ -39,6 +39,51 @@ export const AuthProvider = ({ children }) => {
     };
   };
 
+  // Function to make authenticated requests
+  const makeAuthenticatedRequest = async (endpoint, method = 'GET', body = null) => {
+    const url = `${API_URL}${endpoint}`;
+    console.log(`Making ${method} request to:`, url);
+    console.log('Request headers:', getAuthHeaders());
+    
+    const options = {
+      method,
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    };
+
+    if (body) {
+      options.body = JSON.stringify(body);
+      console.log('Request body:', body);
+    }
+
+    try {
+      console.log('Sending request with options:', options);
+      const response = await fetch(url, options);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Received non-JSON response:', text);
+        throw new Error('Server returned non-JSON response');
+      }
+
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Request failed');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Request error:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     // Check if the user is logged in on page load
     const checkUser = async () => {
@@ -49,19 +94,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/auth/user`, {
-          method: 'GET',
-          headers: getAuthHeaders(),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentUser(data.user);
-        } else {
-          // If token is invalid, clear it
-          removeToken();
-          setCurrentUser(null);
-        }
+        const data = await makeAuthenticatedRequest('/api/auth/user');
+        setCurrentUser(data.user);
       } catch (err) {
         console.error('Failed to retrieve user:', err);
         removeToken();
@@ -77,42 +111,15 @@ export const AuthProvider = ({ children }) => {
   const register = async (email, username, password, age) => {
     setError('');
     try {
-      console.log('Registering with:', { email, username, password, age });
-
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ email, username, password, age }),
+      const data = await makeAuthenticatedRequest('/api/auth/register', 'POST', {
+        email,
+        username,
+        password,
+        age
       });
 
-      // Log response details for debugging
-      console.log('Registration response status:', response.status);
-
-      // For non-JSON responses, we need special handling
-      const contentType = response.headers.get('content-type');
-      let data;
-
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        console.error('Received non-JSON response:', text);
-        throw new Error(`Server responded with non-JSON content: ${text.substring(0, 100)}...`);
-      }
-
-      console.log('Registration response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
-
-      // Store the token and user data
       setToken(data.access_token);
       setCurrentUser(data.user);
-
       return { success: true, data };
     } catch (err) {
       console.error('Registration error:', err);
@@ -124,35 +131,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setError('');
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ email, password }),
+      const data = await makeAuthenticatedRequest('/api/auth/login', 'POST', {
+        email,
+        password
       });
 
-      // For non-JSON responses, we need special handling
-      const contentType = response.headers.get('content-type');
-      let data;
-
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        console.error('Received non-JSON response:', text);
-        throw new Error(`Server responded with non-JSON content: ${text.substring(0, 100)}...`);
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-
-      // Store the token and user data
       setToken(data.access_token);
       setCurrentUser(data.user);
-
       return { success: true };
     } catch (err) {
       console.error('Login error:', err);
@@ -174,7 +159,8 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     logout,
-    getAuthHeaders, // Export this function for use in API calls
+    getAuthHeaders,
+    makeAuthenticatedRequest,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
