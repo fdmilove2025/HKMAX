@@ -1,0 +1,463 @@
+@import '@fontsource/space-grotesk/400.css';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/700.css';
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+  }
+
+  .dark body {
+    @apply bg-black text-white;
+    background-image: 
+      radial-gradient(circle at 25% 10%, rgba(124, 58, 237, 0.05) 0%, transparent 30%),
+      radial-gradient(circle at 75% 75%, rgba(6, 182, 212, 0.05) 0%, transparent 30%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23334155' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-medium;
+  }
+
+  h1 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+
+  a {
+    @apply text-futuristic-blue hover:text-futuristic-cyan transition-colors;
+  }
+
+  .dark a {
+    @apply text-futuristic-cyan hover:text-neon-blue;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-dark-200;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-dark-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-futuristic-blue;
+  }
+}
+
+@layer components {
+  /* Banner image zoom animation */
+  .banner-zoom img {
+    transform-origin: center;
+    animation: bannerZoom 15s ease-in-out infinite alternate;
+  }
+
+  /* Text animation classes */
+  .animate-text-gradient {
+    background-size: 300% 100%;
+    animation: text-gradient-animation 8s ease infinite;
+  }
+
+  .animate-text-reveal {
+    position: relative;
+    display: inline-block;
+    animation: text-reveal-animation 1.5s ease forwards;
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+  }
+
+  .animate-pulse-text {
+    animation: pulse-text-animation 3s ease-in-out infinite;
+  }
+
+  .bg-300\% {
+    background-size: 300% 100%;
+  }
+
+  /* Glass panels */
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-md border border-gray-200 dark:bg-dark-100/70 dark:backdrop-blur-md dark:border-dark-300/50;
+  }
+
+  .glass-panel-dark {
+    @apply bg-black/80 backdrop-blur-md border border-dark-300/50;
+  }
+
+  /* Glow effects */
+  .glow-text {
+    text-shadow: 0 0 5px currentColor, 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+
+  .glow-border {
+    @apply border border-futuristic-cyan;
+    box-shadow: 0 0 5px theme('colors.futuristic.cyan'), 0 0 10px rgba(6, 182, 212, 0.3);
+  }
+
+  .dark .glow-border {
+    @apply border border-neon-blue;
+    box-shadow: 0 0 5px theme('colors.neon.blue'), 0 0 10px rgba(0, 245, 255, 0.3);
+  }
+
+  /* Gradient backgrounds */
+  .gradient-bg {
+    @apply bg-gradient-to-br from-gray-50 to-gray-100;
+  }
+
+  .dark .gradient-bg {
+    @apply bg-gradient-to-br from-dark-100 to-dark-200;
+    background-size: 200% 200%;
+    animation: gradientShift 10s ease infinite;
+  }
+
+  .gradient-text {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-futuristic-blue to-futuristic-cyan;
+  }
+
+  .dark .gradient-text {
+    @apply bg-gradient-to-r from-neon-blue to-neon-purple;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-teal focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-cyan transition-all duration-200;
+  }
+
+  .dark .btn-primary {
+    @apply bg-gradient-to-r from-neon-blue to-futuristic-cyan hover:from-futuristic-cyan hover:to-neon-green shadow-neon-glow text-white font-medium;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center px-4 py-2 border border-gray-300 dark:border-dark-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-cyan dark:focus:ring-neon-blue transition-all duration-200;
+  }
+
+  /* Cards */
+  .futuristic-card {
+    @apply rounded-xl overflow-hidden glass-panel transition-all duration-300 hover:shadow-lg dark:hover:shadow-dark-300/50;
+  }
+
+  .dark .futuristic-card {
+    @apply glass-panel-dark hover:border-futuristic-cyan/50;
+  }
+
+  /* Custom Range Input Styling */
+  input[type="range"] {
+    -webkit-appearance: none;
+    @apply bg-gray-200 dark:bg-dark-300 rounded-lg h-2;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    @apply bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan h-6 w-6 rounded-full cursor-pointer shadow-md hover:scale-110 transition-transform duration-200;
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    @apply bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan border-0 h-6 w-6 rounded-full cursor-pointer shadow-md hover:scale-110 transition-transform duration-200;
+  }
+  
+  input[type="range"]::-ms-thumb {
+    @apply bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan h-6 w-6 rounded-full cursor-pointer shadow-md hover:scale-110 transition-transform duration-200;
+  }
+
+  input[type="range"]:focus {
+    @apply outline-none;
+  }
+
+  input[type="range"]:focus::-webkit-slider-thumb {
+    @apply ring-2 ring-futuristic-blue dark:ring-neon-blue ring-offset-1;
+  }
+
+  /* Checkbox styling improvement for light mode */
+  button[type="button"][aria-labelledby$="-label"] {
+    @apply shadow-sm;
+    border-width: 2px;
+  }
+
+  button[type="button"][aria-labelledby$="-label"]:not(.bg-gradient-to-r) {
+    @apply border-gray-400;
+  }
+
+  .radio-option {
+    @apply relative border-2 p-4 rounded-lg flex cursor-pointer focus:outline-none transition-all duration-200;
+  }
+}
+
+/* React Select Custom Styling */
+.react-select-container {
+  position: relative;
+  z-index: 1;
+}
+
+.react-select-container .react-select__control {
+  @apply border-gray-300 dark:border-dark-300 bg-white dark:bg-dark-200 transition-all duration-200 rounded-lg shadow-sm;
+}
+
+.react-select-container .react-select__control:hover {
+  @apply border-futuristic-blue dark:border-neon-blue;
+}
+
+.react-select-container .react-select__control--is-focused {
+  @apply border-futuristic-blue dark:border-neon-blue shadow-none;
+  box-shadow: 0 0 0 1px theme('colors.futuristic.blue');
+  z-index: 2;
+}
+
+.dark .react-select-container .react-select__control--is-focused {
+  box-shadow: 0 0 0 1px theme('colors.neon.blue'), 0 0 10px rgba(0, 245, 255, 0.2);
+}
+
+/* Select menu portal fixes */
+.select-menu-portal {
+  position: relative;
+  z-index: 9999;
+}
+
+/* Custom styling for React Select menu */
+.custom-select-menu {
+  background-color: white;
+  border-radius: 0.75rem;
+  margin-top: 4px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  @apply border border-gray-200;
+}
+
+.dark .custom-select-menu {
+  @apply bg-dark-200 border-dark-300;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 5px rgba(6, 182, 212, 0.1);
+}
+
+.custom-select-menu .react-select__menu-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 5px 0;
+  @apply rounded-lg;
+}
+
+/* Override portal z-index */
+div[id^='react-select-'][id$='-portal'] {
+  z-index: 9999 !important;
+}
+
+.react-select__menu-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.react-select-container .react-select__option {
+  @apply text-gray-800 dark:text-white cursor-pointer transition-colors duration-150 rounded-md mx-1;
+  padding: 0.5rem 1rem;
+}
+
+.react-select-container .react-select__option--is-focused {
+  @apply bg-futuristic-blue/10 dark:bg-dark-100 text-futuristic-blue dark:text-white;
+}
+
+.react-select-container .react-select__option--is-selected {
+  @apply bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan text-white;
+}
+
+.react-select-container .react-select__value-container {
+  @apply py-1;
+}
+
+.react-select-container .react-select__indicator-separator {
+  @apply bg-gray-300 dark:bg-dark-300;
+}
+
+.react-select-container .react-select__placeholder {
+  @apply text-gray-500 dark:text-gray-400;
+}
+
+.react-select-container .react-select__single-value {
+  @apply text-gray-900 dark:text-white;
+}
+
+.react-select-container .react-select__input-container {
+  @apply text-gray-900 dark:text-white;
+}
+
+/* Headless UI - Radio Group styling */
+.radio-option {
+  @apply relative border p-4 rounded-lg flex cursor-pointer focus:outline-none transition-all duration-200;
+}
+
+.radio-option.checked {
+  @apply bg-gradient-to-r from-futuristic-blue/10 to-futuristic-cyan/10 dark:from-neon-blue/10 dark:to-futuristic-cyan/10 border-futuristic-cyan dark:border-neon-blue z-10;
+}
+
+.radio-option.active {
+  @apply ring-2 ring-futuristic-blue dark:ring-neon-blue;
+}
+
+.radio-option:hover:not(.checked) {
+  @apply bg-gray-50 dark:bg-dark-100/50;
+}
+
+.dark .radio-option.checked {
+  @apply shadow-neon-glow;
+}
+
+/* Custom checkbox improvements */
+.custom-checkbox {
+  @apply relative flex items-center h-5;
+}
+
+.custom-checkbox button {
+  @apply h-6 w-6 rounded-md focus:outline-none transition-all duration-200 ease-in-out relative shadow-sm;
+  border-width: 2px;
+}
+
+.custom-checkbox button:not(.bg-gradient-to-r) {
+  @apply bg-white dark:bg-dark-200 border-gray-400 dark:border-gray-500;
+}
+
+.custom-checkbox button.checked {
+  @apply bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan border-transparent;
+}
+
+/* Loading animation */
+.loader {
+  @apply relative w-12 h-12;
+}
+
+.loader:before, .loader:after {
+  @apply content-[''] absolute top-0 left-0 w-full h-full rounded-full;
+  animation: pulse-ring 2s linear infinite;
+}
+
+.loader:before {
+  @apply bg-futuristic-blue/30 dark:bg-neon-blue/30;
+}
+
+.loader:after {
+  @apply bg-futuristic-blue dark:bg-neon-blue;
+  animation: pulse-dot 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.5s infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(0.9);
+  }
+}
+
+/* Banner animation keyframes */
+@keyframes bannerZoom {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes breathing {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+}
+
+.animate-breathing {
+  animation: breathing 4s ease-in-out infinite;
+}
+
+/* Glowing shadow for elements */
+.shadow-glow {
+  box-shadow: 0 0 15px 5px rgba(0, 195, 255, 0.3);
+}
+
+/* Text shadow for better contrast on colored backgrounds */
+.text-shadow {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* New text animation keyframes */
+@keyframes text-gradient-animation {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes text-reveal-animation {
+  0% {
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  30% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-text-animation {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
+  }
+  50% {
+    opacity: 0.8;
+    text-shadow: 0 0 15px rgba(6, 182, 212, 0.8), 0 0 20px rgba(6, 182, 212, 0.5);
+  }
+}
+
