@@ -50,7 +50,7 @@ const ExploreSecuritiesPage = () => {
 
   // Load watchlist from localStorage on component mount
   useEffect(() => {
-    const savedWatchlist = localStorage.getItem('investbuddy_watchlist');
+    const savedWatchlist = localStorage.getItem('i-buddy_watchlist');
     if (savedWatchlist) {
       try {
         setWatchlist(JSON.parse(savedWatchlist));
@@ -63,7 +63,7 @@ const ExploreSecuritiesPage = () => {
 
   // Save watchlist to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('investbuddy_watchlist', JSON.stringify(watchlist));
+    localStorage.setItem('i-buddy_watchlist', JSON.stringify(watchlist));
   }, [watchlist]);
 
   const handleSearchChange = (e) => {

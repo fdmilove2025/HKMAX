@@ -29,7 +29,7 @@ const Header = () => {
                 className="text-blue-600 dark:text-blue-400 text-xl font-bold"
                 onClick={handleLogoClick}
               >
-                InvestBuddy
+                I-Buddy
               </Link>
             </div>
             <div className="hidden md:ml-6 md:flex md:space-x-4">

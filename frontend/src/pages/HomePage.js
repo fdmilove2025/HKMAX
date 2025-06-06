@@ -140,15 +140,15 @@ const DisclaimerModal = ({ isOpen, onClose }) => {
           </div>
           
           <div className="text-gray-700 dark:text-gray-300 text-sm space-y-3">
-            <p><span className="font-semibold">Investment Risk:</span> All investment strategies have the potential for profit or loss. InvestBuddy makes no representations or warranties regarding the accuracy or completeness of information provided.</p>
+            <p><span className="font-semibold">Investment Risk:</span> All investment strategies have the potential for profit or loss. I-Buddy makes no representations or warranties regarding the accuracy or completeness of information provided.</p>
             
-            <p><span className="font-semibold">Not Financial Advice:</span> The content on this site is for informational purposes only. InvestBuddy is not a registered investment, legal, or tax advisor or broker/dealer, and this platform does not provide individualized investment advice.</p>
+            <p><span className="font-semibold">Not Financial Advice:</span> The information provided on this site is for informational purposes only. I-Buddy is not a registered investment, legal, or tax advisor or broker/dealer, and this platform does not provide individualized investment advice.</p>
             
             <p><span className="font-semibold">AI Limitations:</span> While our AI-powered tools use sophisticated algorithms, they are not infallible. Recommendations should be evaluated in the context of your personal financial situation and goals.</p>
             
             <p><span className="font-semibold">Past Performance:</span> Past performance is not indicative of future results. Actual investment results will fluctuate with market conditions.</p>
             
-            <p className="mt-4">By using InvestBuddy, you acknowledge that you have read this disclaimer and understand the inherent risks associated with investing.</p>
+            <p className="mt-4">By using I-Buddy, you acknowledge that you have read this disclaimer and understand the inherent risks associated with investing.</p>
           </div>
           
           <div className="mt-6 flex justify-end">

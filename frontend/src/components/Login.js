@@ -138,7 +138,7 @@ const Login = () => {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white dark:bg-dark-100 text-gray-500 dark:text-gray-400">
-                  New to InvestBuddy?
+                  New to I-Buddy?
                 </span>
               </div>
             </div>
@@ -149,7 +149,7 @@ const Login = () => {
                 className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-200"
                 onClick={() => window.scrollTo(0, 0)}
               >
-                Create a new account
+                Create an account
               </Link>
             </div>
           </div>
