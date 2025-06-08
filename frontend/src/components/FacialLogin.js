@@ -10,9 +10,11 @@ const FacialLogin = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const canvasRef = useRef(null);
   const { darkMode } = useTheme();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { facialLogin } = useAuth();
+  const [email, setEmail] = useState("");
 
   // Cleanup function
   useEffect(() => {
@@ -25,7 +27,7 @@ const FacialLogin = () => {
 
   // Effect to handle camera initialization when step changes to 2
   useEffect(() => {
-    if (step === 2 && videoRef.current && !cameraActive) {
+    if (step === 2 && !cameraActive) {
       initializeCamera();
     }
   }, [step, cameraActive]);
@@ -74,54 +76,84 @@ const FacialLogin = () => {
     }
   };
 
-  const startCamera = () => {
-    setError("");
-    setStep(2);
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
   };
 
-  const verifyFace = async () => {
-    if (!videoRef.current) return;
+  const captureImage = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      console.error("Video or canvas reference is null");
+      return null;
+    }
 
-    setStep(3);
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw current video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to base64 image
+    const imageData = canvas.toDataURL("image/jpeg");
+    return imageData;
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+
     try {
-      // Create a canvas to capture the current frame
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(videoRef.current, 0, 0);
+      setLoading(true);
+      setError("");
+      setStep(3); // Move to processing step
 
-      // Convert the captured frame to base64
-      const imageData = canvas.toDataURL("image/jpeg");
-
-      // TODO: Send the image data to your backend for face verification
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Stop the camera
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+      const imageData = captureImage();
+      if (!imageData) {
+        throw new Error("Failed to capture image");
       }
-      setCameraActive(false);
 
-      // Simulate successful login
-      const result = await login("facial", "facial");
+      // Send image to backend for verification
+      const result = await facialLogin(email, imageData);
       if (result.success) {
-        setStep(4);
-        // Navigate to home page after a short delay
+        setStep(4); // Move to success step
         setTimeout(() => {
-          navigate("/", { replace: true });
+          navigate("/");
         }, 2000);
       } else {
-        throw new Error("Face verification failed");
+        throw new Error(result.error || "Failed to verify face");
       }
     } catch (err) {
-      setError(
-        "Face verification failed. Please try again or use email login."
-      );
-      setStep(2);
-      console.error("Face verification error:", err);
+      setError(err.message || "Failed to verify face");
+      setStep(2); // Go back to camera step on error
+      // Reinitialize camera on error
+      stopCamera();
+      setTimeout(() => {
+        initializeCamera();
+      }, 100);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setError("");
+    stopCamera();
+    setCameraActive(false);
+    setStep(1);
   };
 
   const renderStep = () => {
@@ -136,11 +168,29 @@ const FacialLogin = () => {
               Please ensure you're in a well-lit area and your face is clearly
               visible. We'll verify your identity using facial recognition.
             </p>
+            <div className="mb-4">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-dark-200 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:border-futuristic-blue dark:focus:border-neon-blue sm:text-sm transition-all duration-200"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
             <button
-              onClick={startCamera}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300"
+              onClick={() => setStep(2)}
+              disabled={!email || loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300 disabled:opacity-50"
             >
-              Start Camera
+              {loading ? "Processing..." : "Start Camera"}
             </button>
           </div>
         );
@@ -159,6 +209,7 @@ const FacialLogin = () => {
                 onError={(e) => {
                   console.error("Video element error:", e);
                   setError("Error displaying video preview");
+                  handleRetry();
                 }}
               />
               <div className="absolute inset-0 border-2 border-futuristic-blue dark:border-neon-blue rounded-lg pointer-events-none"></div>
@@ -166,12 +217,21 @@ const FacialLogin = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Position your face within the frame and ensure good lighting
             </p>
-            <button
-              onClick={verifyFace}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300"
-            >
-              Verify Face
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={handleVerify}
+                disabled={loading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300 disabled:opacity-50"
+              >
+                {loading ? "Processing..." : "Verify Face"}
+              </button>
+              <button
+                onClick={handleRetry}
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-200"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         );
 
@@ -267,6 +327,9 @@ const FacialLogin = () => {
           </div>
         </div>
       </div>
+
+      {/* Hidden canvas for image capture */}
+      <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 const FacialRegistration = () => {
   const [loading, setLoading] = useState(false);
@@ -10,9 +11,10 @@ const FacialRegistration = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const canvasRef = useRef(null);
   const { darkMode } = useTheme();
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { registerFace } = useAuth();
 
   // Cleanup function
   useEffect(() => {
@@ -25,7 +27,7 @@ const FacialRegistration = () => {
 
   // Effect to handle camera initialization when step changes to 2
   useEffect(() => {
-    if (step === 2 && videoRef.current && !cameraActive) {
+    if (step === 2 && !cameraActive) {
       initializeCamera();
     }
   }, [step, cameraActive]);
@@ -74,51 +76,69 @@ const FacialRegistration = () => {
     }
   };
 
-  const startCamera = () => {
-    setError("");
-    setStep(2);
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
   };
 
-  const captureFace = async () => {
-    if (!videoRef.current) return;
-
-    setStep(3);
-    try {
-      // Create a canvas to capture the current frame
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(videoRef.current, 0, 0);
-
-      // Convert the captured frame to base64
-      const imageData = canvas.toDataURL("image/jpeg");
-
-      // TODO: Send the image data to your backend for face registration
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Stop the camera
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      setCameraActive(false);
-      setStep(4);
-
-      // Navigate to login page after a short delay
-      setTimeout(() => {
-        navigate("/login", {
-          state: {
-            message:
-              "Facial registration successful! You can now use facial login.",
-          },
-        });
-      }, 2000);
-    } catch (err) {
-      setError("Failed to process facial data. Please try again.");
-      setStep(2);
-      console.error("Face capture error:", err);
+  const captureImage = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      console.error("Video or canvas reference is null");
+      return null;
     }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw current video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to base64 image
+    const imageData = canvas.toDataURL("image/jpeg");
+    return imageData;
+  };
+
+  const handleCapture = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const imageData = captureImage();
+      if (!imageData) {
+        throw new Error("Failed to capture image");
+      }
+
+      // Send image to backend for registration
+      const result = await registerFace(imageData);
+      if (result.success) {
+        setStep(4); // Move to success step
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
+      } else {
+        throw new Error(result.error || "Failed to register face");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to register face");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    setStep(1);
+    setError("");
   };
 
   const renderStep = () => {
@@ -134,10 +154,11 @@ const FacialRegistration = () => {
               you're in a well-lit area and your face is clearly visible.
             </p>
             <button
-              onClick={startCamera}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300"
+              onClick={() => setStep(2)}
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300 disabled:opacity-50"
             >
-              Start Camera
+              {loading ? "Processing..." : "Start Camera"}
             </button>
           </div>
         );
@@ -164,10 +185,11 @@ const FacialRegistration = () => {
               Position your face within the frame and ensure good lighting
             </p>
             <button
-              onClick={captureFace}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300"
+              onClick={handleCapture}
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300 disabled:opacity-50"
             >
-              Capture Face
+              {loading ? "Processing..." : "Capture"}
             </button>
           </div>
         );
@@ -207,7 +229,7 @@ const FacialRegistration = () => {
               Registration Successful!
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Redirecting to login page...
+              Redirecting to dashboard...
             </p>
           </div>
         );
@@ -264,6 +286,9 @@ const FacialRegistration = () => {
           </div>
         </div>
       </div>
+
+      {/* Hidden canvas for image capture */}
+      <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
 };

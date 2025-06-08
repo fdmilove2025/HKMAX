@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from app.models import db, User
+from app.models import db, User, FaceEncoding
 from werkzeug.security import generate_password_hash, check_password_hash
+from app.face_encoding import faceEncoding, checkFaceExists, compareFaces
 import re
 import traceback
 
@@ -52,7 +53,8 @@ def register():
         new_user = User(
             email=data['email'],
             username=data['username'],
-            age=age
+            age=age,
+            has_faceid=data.get('faceid', False)
         )
         new_user.set_password(data['password'])
         
@@ -69,7 +71,8 @@ def register():
                 'id': new_user.id,
                 'username': new_user.username,
                 'email': new_user.email,
-                'age': new_user.age
+                'age': new_user.age,
+                'has_faceid': new_user.has_faceid
             },
             'access_token': access_token
         }), 201
@@ -79,6 +82,109 @@ def register():
         print(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': f'Registration failed: {str(e)}'}), 500
+
+@auth_bp.route('/register-face', methods=['POST'])
+@jwt_required()
+def register_face():
+    """Register facial data for a user"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': f'Expected JSON but got {request.content_type}'}), 400
+        
+        data = request.json
+        if not data or 'image' not in data:
+            return jsonify({'error': 'No image data provided'}), 400
+        
+        # Get current user
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Check if face exists in image
+        if not checkFaceExists(data['image']):
+            return jsonify({'error': 'No face detected in the image'}), 400
+        
+        # Get face encoding
+        encoding = faceEncoding(data['image'])
+        if not encoding:
+            return jsonify({'error': 'Failed to encode face'}), 400
+        
+        # Save face encoding
+        user.set_face_encoding(encoding)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Face registered successfully',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'has_faceid': user.has_faceid
+            }
+        })
+        
+    except Exception as e:
+        print(f"Face registration error: {str(e)}")
+        print(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({'error': f'Face registration failed: {str(e)}'}), 500
+
+@auth_bp.route('/verify-face', methods=['POST'])
+def verify_face():
+    """Verify facial data for login"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': f'Expected JSON but got {request.content_type}'}), 400
+        
+        data = request.json
+        if not data or 'image' not in data or 'email' not in data:
+            return jsonify({'error': 'Missing required data'}), 400
+        
+        # Find user by email
+        user = User.query.filter_by(email=data['email']).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        if not user.has_faceid:
+            return jsonify({'error': 'User has not registered facial data'}), 400
+        
+        # Check if face exists in image
+        if not checkFaceExists(data['image']):
+            return jsonify({'error': 'No face detected in the image'}), 400
+        
+        # Get face encoding
+        encoding = faceEncoding(data['image'])
+        if not encoding:
+            return jsonify({'error': 'Failed to encode face'}), 400
+        
+        # Compare faces
+        stored_encoding = user.get_face_encoding()
+        if not stored_encoding:
+            return jsonify({'error': 'No stored face data found'}), 400
+        
+        if not compareFaces(stored_encoding, encoding):
+            return jsonify({'error': 'Face verification failed'}), 401
+        
+        # Create access token
+        access_token = create_access_token(identity=user.id)
+        
+        return jsonify({
+            'message': 'Face verification successful',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'has_faceid': user.has_faceid
+            },
+            'access_token': access_token
+        })
+        
+    except Exception as e:
+        print(f"Face verification error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Face verification failed: {str(e)}'}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -113,7 +219,8 @@ def login():
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
-                'age': user.age
+                'age': user.age,
+                'has_faceid': user.has_faceid
             },
             'access_token': access_token
         })
@@ -176,7 +283,8 @@ def update_profile():
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
-                'age': user.age
+                'age': user.age,
+                'has_faceid': user.has_faceid
             },
             'access_token': access_token
         })
@@ -203,7 +311,8 @@ def get_user():
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
-                'age': user.age
+                'age': user.age,
+                'has_faceid': user.has_faceid
             }
         })
         

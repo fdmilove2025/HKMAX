@@ -65,8 +65,32 @@ def create_mysql_database():
                 username VARCHAR(80) NOT NULL UNIQUE,
                 password_hash VARCHAR(255) NOT NULL,
                 age INT NOT NULL,
+                has_faceid BOOLEAN NOT NULL DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Check if has_faceid column exists
+        cursor.execute("SHOW COLUMNS FROM users LIKE 'has_faceid'")
+        if not cursor.fetchone():
+            print("Adding has_faceid column to users table...")
+            cursor.execute("""
+                ALTER TABLE users
+                ADD COLUMN has_faceid BOOLEAN NOT NULL DEFAULT FALSE
+            """)
+        
+        # Create face_encodings table if it doesn't exist
+        print("Creating face_encodings table if it doesn't exist...")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS face_encodings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                encoding TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_user_encoding (user_id)
             )
         """)
         

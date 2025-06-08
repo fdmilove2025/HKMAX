@@ -9,6 +9,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [age, setAge] = useState("");
+  const [faceid, setFaceid] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showFacialModal, setShowFacialModal] = useState(false);
@@ -41,12 +42,8 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const result = await register(email, username, password, ageNum);
-      if (result.success) {
-        setShowFacialModal(true);
-      } else {
-        setError(result.error || "Registration failed");
-      }
+      // Show facial recognition modal first
+      setShowFacialModal(true);
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error(err);
@@ -55,11 +52,30 @@ const Register = () => {
     }
   };
 
-  const handleFacialChoice = (enableFacial) => {
-    if (enableFacial) {
-      navigate("/facial-registration");
-    } else {
-      navigate("/login", { replace: true });
+  const handleFacialChoice = async (enableFacial) => {
+    setLoading(true);
+    try {
+      const result = await register(
+        email,
+        username,
+        password,
+        parseInt(age),
+        enableFacial
+      );
+      if (result.success) {
+        if (enableFacial) {
+          navigate("/facial-registration");
+        } else {
+          navigate("/login", { replace: true });
+        }
+      } else {
+        setError(result.error || "Registration failed");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
     window.scrollTo(0, 0);
   };
