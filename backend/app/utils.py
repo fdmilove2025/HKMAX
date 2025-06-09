@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 def send_login_notification_email(receiver_email, username, login_method="password"):
     """Send a login notification email to the user"""
     sender_email = "fdmpod@gmail.com"
-    password = "ogpl pxob anrg ymgp"
-
+    password = "ogpl pxob anrg ymgp"  
     logger.info(f"Attempting to send login notification email to {receiver_email}")
     logger.info(f"Login method: {login_method}")
 
