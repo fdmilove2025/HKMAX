@@ -14,6 +14,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
     age = db.Column(db.Integer, nullable=False)
     has_faceid = db.Column(db.Boolean, default=False)
+    two_factor_secret = db.Column(db.String(255), nullable=True)
+    is_two_factor_enabled = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

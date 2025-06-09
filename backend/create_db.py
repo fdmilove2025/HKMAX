@@ -66,6 +66,8 @@ def create_mysql_database():
                 password_hash VARCHAR(255) NOT NULL,
                 age INT NOT NULL,
                 has_faceid BOOLEAN NOT NULL DEFAULT FALSE,
+                two_factor_secret VARCHAR(255),
+                is_two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )
@@ -79,6 +81,18 @@ def create_mysql_database():
                 ALTER TABLE users
                 ADD COLUMN has_faceid BOOLEAN NOT NULL DEFAULT FALSE
             """)
+        
+        # Check if two_factor_secret column exists
+        cursor.execute("SHOW COLUMNS FROM users LIKE 'two_factor_secret'")
+        if not cursor.fetchone():
+            print("Adding two_factor_secret column to users table...")
+            cursor.execute("ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR(255)")
+
+        # Check if is_two_factor_enabled column exists
+        cursor.execute("SHOW COLUMNS FROM users LIKE 'is_two_factor_enabled'")
+        if not cursor.fetchone():
+            print("Adding is_two_factor_enabled column to users table...")
+            cursor.execute("ALTER TABLE users ADD COLUMN is_two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE")
         
         # Create face_encodings table if it doesn't exist
         print("Creating face_encodings table if it doesn't exist...")

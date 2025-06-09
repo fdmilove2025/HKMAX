@@ -1,10 +1,14 @@
 from flask import Blueprint, request, jsonify, make_response
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, create_refresh_token
 from app.models import db, User, FaceEncoding
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.face_encoding import faceEncoding, checkFaceExists, compareFaces
 import re
 import traceback
+import pyotp
+import qrcode
+import io
+import base64
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -210,6 +214,16 @@ def login():
         if not user.check_password(data['password']):
             return jsonify({'error': 'Invalid password'}), 401
         
+        if user.is_two_factor_enabled:
+            # If 2FA is enabled, return a temporary token and a message
+            # that 2FA is required.
+            temp_access_token = create_access_token(identity=user.id, fresh=False)
+            return jsonify({
+                'message': '2FA required',
+                '2fa_required': True,
+                'temp_access_token': temp_access_token
+            }), 200
+
         # Create access token
         access_token = create_access_token(identity=user.id)
         
@@ -229,6 +243,87 @@ def login():
         print(f"Login error: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'error': f'Login failed: {str(e)}'}), 500
+
+@auth_bp.route('/generate-2fa', methods=['POST'])
+@jwt_required()
+def generate_2fa():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Generate a new 2FA secret
+    user.two_factor_secret = pyotp.random_base32()
+    db.session.commit()
+
+    # Generate QR code
+    totp = pyotp.TOTP(user.two_factor_secret)
+    provisioning_uri = totp.provisioning_uri(name=user.email, issuer_name='InvestBuddy')
+    
+    img = qrcode.make(provisioning_uri)
+    buf = io.BytesIO()
+    img.save(buf)
+    buf.seek(0)
+    
+    # Encode image to base64
+    img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+    return jsonify({
+        'message': '2FA QR code generated. Please scan with your authenticator app.',
+        'qr_code': f'data:image/png;base64,{img_base64}',
+        'secret': user.two_factor_secret
+    })
+
+@auth_bp.route('/verify-2fa', methods=['POST'])
+@jwt_required()
+def verify_2fa():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json()
+    if 'token' not in data:
+        return jsonify({'error': 'Missing 2FA token'}), 400
+
+    totp = pyotp.TOTP(user.two_factor_secret)
+
+    if totp.verify(data['token']):
+        if not user.is_two_factor_enabled:
+            user.is_two_factor_enabled = True
+            db.session.commit()
+        
+        access_token = create_access_token(identity=user.id)
+        return jsonify({
+            'message': '2FA verified successfully.',
+            'access_token': access_token
+        }), 200
+    else:
+        return jsonify({'error': 'Invalid 2FA token'}), 401
+
+@auth_bp.route('/disable-2fa', methods=['POST'])
+@jwt_required()
+def disable_2fa():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json()
+    if 'password' not in data:
+        return jsonify({'error': 'Missing password'}), 400
+
+    if not user.check_password(data['password']):
+        return jsonify({'error': 'Invalid password'}), 401
+
+    user.is_two_factor_enabled = False
+    user.two_factor_secret = None
+    db.session.commit()
+
+    return jsonify({'message': 'Two-factor authentication disabled successfully.'})
 
 @auth_bp.route('/profile/update', methods=['PUT'])
 @jwt_required()

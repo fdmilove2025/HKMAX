@@ -12,3 +12,5 @@ requests==2.31.0
 cryptography==42.0.5
 coverage==7.4.3
 flask-jwt-extended==4.6.0
+pyotp==2.9.0
+qrcode[pil]==8.2
