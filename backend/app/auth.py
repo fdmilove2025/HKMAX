@@ -3,6 +3,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from app.models import db, User, FaceEncoding
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.face_encoding import faceEncoding, checkFaceExists, compareFaces
+from app.utils import send_login_notification_email
 import re
 import traceback
 
@@ -83,54 +84,6 @@ def register():
         db.session.rollback()
         return jsonify({'error': f'Registration failed: {str(e)}'}), 500
 
-@auth_bp.route('/register-face', methods=['POST'])
-@jwt_required()
-def register_face():
-    """Register facial data for a user"""
-    try:
-        if not request.is_json:
-            return jsonify({'error': f'Expected JSON but got {request.content_type}'}), 400
-        
-        data = request.json
-        if not data or 'image' not in data:
-            return jsonify({'error': 'No image data provided'}), 400
-        
-        # Get current user
-        current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
-        
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
-        # Check if face exists in image
-        if not checkFaceExists(data['image']):
-            return jsonify({'error': 'No face detected in the image'}), 400
-        
-        # Get face encoding
-        encoding = faceEncoding(data['image'])
-        if not encoding:
-            return jsonify({'error': 'Failed to encode face'}), 400
-        
-        # Save face encoding
-        user.set_face_encoding(encoding)
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Face registered successfully',
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'has_faceid': user.has_faceid
-            }
-        })
-        
-    except Exception as e:
-        print(f"Face registration error: {str(e)}")
-        print(traceback.format_exc())
-        db.session.rollback()
-        return jsonify({'error': f'Face registration failed: {str(e)}'}), 500
-
 @auth_bp.route('/verify-face', methods=['POST'])
 def verify_face():
     """Verify facial data for login"""
@@ -169,6 +122,9 @@ def verify_face():
         
         # Create access token
         access_token = create_access_token(identity=user.id)
+        
+        # Send login notification email
+        send_login_notification_email(user.email, user.username, login_method="facial recognition")
         
         return jsonify({
             'message': 'Face verification successful',
@@ -212,6 +168,9 @@ def login():
         
         # Create access token
         access_token = create_access_token(identity=user.id)
+        
+        # Send login notification email
+        send_login_notification_email(user.email, user.username, login_method="password")
         
         return jsonify({
             'message': 'Login successful',
@@ -319,4 +278,55 @@ def get_user():
     except Exception as e:
         print(f"Get user error: {str(e)}")
         print(traceback.format_exc())
-        return jsonify({'error': f'Failed to get user: {str(e)}'}), 500 
+        return jsonify({'error': f'Failed to get user: {str(e)}'}), 500
+
+@auth_bp.route('/register-face', methods=['POST'])
+@jwt_required()
+def register_face():
+    """Register facial data for a user"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': f'Expected JSON but got {request.content_type}'}), 400
+        
+        data = request.json
+        if not data or 'image' not in data:
+            return jsonify({'error': 'Missing image data'}), 400
+        
+        # Get current user
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Check if face exists in image
+        if not checkFaceExists(data['image']):
+            return jsonify({'error': 'No face detected in the image'}), 400
+        
+        # Get face encoding
+        encoding = faceEncoding(data['image'])
+        if not encoding:
+            return jsonify({'error': 'Failed to encode face'}), 400
+        
+        # Store face encoding
+        user.set_face_encoding(encoding)
+        user.has_faceid = True
+        
+        # Save to database
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Face registration successful',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'has_faceid': user.has_faceid
+            }
+        })
+        
+    except Exception as e:
+        print(f"Face registration error: {str(e)}")
+        print(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({'error': f'Face registration failed: {str(e)}'}), 500 

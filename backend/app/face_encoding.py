@@ -56,7 +56,7 @@ def checkFaceExists(img_data):
         print(f"Error in face detection: {str(e)}")
         return False
 
-def compareFaces(known_encoding, unknown_encoding, tolerance=0.6):
+def compareFaces(known_encoding, unknown_encoding, tolerance=0.4):
     """
     Compare two face encodings
     Returns: True if faces match, False otherwise
