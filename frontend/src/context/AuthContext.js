@@ -11,24 +11,32 @@ export function useAuth() {
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   // Function to get the auth token from localStorage
   const getToken = () => {
-    return localStorage.getItem("authToken");
+    return localStorage.getItem("token");
   };
 
   // Function to set the auth token in localStorage
-  const setToken = (token) => {
-    localStorage.setItem("authToken", token);
+  const setAuthToken = (newToken) => {
+    if (newToken) {
+      localStorage.setItem("token", newToken);
+      setToken(newToken);
+    } else {
+      localStorage.removeItem("token");
+      setToken(null);
+    }
   };
 
   // Function to remove the auth token from localStorage
   const removeToken = () => {
-    localStorage.removeItem("authToken");
+    localStorage.removeItem("token");
     localStorage.removeItem("user");
     setCurrentUser(null);
+    setToken(null);
   };
 
   // Function to get auth headers
@@ -155,7 +163,7 @@ export const AuthProvider = ({ children }) => {
         }
       );
 
-      setToken(data.access_token);
+      setAuthToken(data.access_token);
       updateCurrentUser(data.user);
       return { success: true, data };
     } catch (err) {
@@ -168,36 +176,40 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setError("");
     try {
-      const data = await makeAuthenticatedRequest("/api/auth/login", "POST", {
-        email,
-        password,
+      console.log("Attempting login for:", email);
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
       });
 
-      console.log("Login response data:", data);
-      console.log('typeof data.2fa_required:', typeof data['2fa_required'], 'value:', data['2fa_required']);
+      const data = await response.json();
+      console.log("Login response:", data);
 
-      // Check for 2FA requirement first
-      if (data['2fa_required']) {
+      if (!response.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      // Check for 2FA requirement
+      if (data['2fa_required'] || data.twofa_required) {
         console.log("2FA required, returning 2FA info");
         return {
           success: false,
           twofa_required: true,
           temp_access_token: data.temp_access_token,
-          message: data.message || "Please enter your 2FA code"
+          message: data.message || "Please enter your 2FA code",
         };
       }
 
-      // If we have an access token, login was successful
-      if (data.access_token) {
-        console.log("Login successful, setting token and user");
-        setToken(data.access_token);
-        updateCurrentUser(data.user);
-        return { success: true };
-      }
-
-      // If we get here, something went wrong
-      console.log("Login failed, no token or 2FA");
-      return { success: false, error: data.error || "Login failed" };
+      // If we get here, login was successful without 2FA
+      console.log("Login successful, setting token and user data");
+      setAuthToken(data.access_token);
+      setCurrentUser(data.user);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      
+      return { success: true };
     } catch (err) {
       console.error("Login error:", err);
       setError(err.message);
@@ -224,7 +236,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Set the final access token
-      setToken(data.access_token);
+      setAuthToken(data.access_token);
 
       // Get user data with the new token
       const userResponse = await fetch(`${API_URL}/api/auth/user`, {
@@ -251,17 +263,25 @@ export const AuthProvider = ({ children }) => {
   const facialLogin = async (email, imageData) => {
     setError("");
     try {
-      const data = await makeAuthenticatedRequest(
-        "/api/auth/verify-face",
-        "POST",
-        {
+      const response = await fetch(`${API_URL}/api/auth/verify-face`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email,
           image: imageData,
-        }
-      );
+        }),
+      });
 
-      setToken(data.access_token);
-      updateCurrentUser(data.user);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Facial verification failed');
+      }
+
+      setAuthToken(data.access_token);
+      setCurrentUser(data.user);
       return { success: true };
     } catch (err) {
       console.error("Facial login error:", err);
@@ -301,16 +321,19 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     currentUser,
-    loading,
+    token,
     error,
-    register,
+    loading,
     login,
     logout,
+    register,
+    updateCurrentUser,
     verify2FA,
+    facialLogin,
     registerFace,
+    isAuthenticated: !!token,
     makeAuthenticatedRequest,
     getAuthHeaders,
-    updateCurrentUser,
     getCurrentUser
   };
 

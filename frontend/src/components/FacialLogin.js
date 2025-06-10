@@ -137,6 +137,7 @@ const FacialLogin = () => {
         throw new Error(result.error || "Failed to verify face");
       }
     } catch (err) {
+      console.error("Facial verification error:", err);
       setError(err.message || "Failed to verify face");
       setStep(2); // Go back to camera step on error
       // Reinitialize camera on error

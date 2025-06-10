@@ -35,7 +35,7 @@ const Login = () => {
         const result = await verify2FA(twoFactorToken, tempAuthToken);
         
         if (result.success) {
-          navigate('/');
+          navigate('/', { replace: true });
           return;
         } else {
           setError(result.error);
@@ -48,16 +48,18 @@ const Login = () => {
       console.log("Login result:", result);
 
       if (result.success) {
-        const redirectTo = location.state?.from || "/";
-        navigate(redirectTo, { replace: true });
-        window.scrollTo(0, 0);
+        // Wait a moment to ensure state is updated
+        setTimeout(() => {
+          navigate('/', { replace: true });
+          window.scrollTo(0, 0);
+        }, 100);
       } else if (result.twofa_required) {
+        console.log("2FA required, showing 2FA input");
         setTempAuthToken(result.temp_access_token);
         setShow2FAInput(true);
-        setMessage(result.message);
+        setMessage(result.message || "Please enter your 2FA code");
         setError("");
-      } else if (result.success === false && !result.twofa_required) {
-        console.log("Login failed:", result.error);
+      } else {
         setError(result.error || "Invalid email or password");
       }
     } catch (err) {
