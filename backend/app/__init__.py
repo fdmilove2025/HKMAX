@@ -7,16 +7,22 @@ from app.models import db, User
 
 load_dotenv()  # Load environment variables from .env file
 
-def create_app():
+def create_app(config=None):
     app = Flask(__name__)
     
-    # Configure the app
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-    app.config['JWT_SECRET_KEY'] = os.getenv('SECRET_KEY')  # Use the same secret key for JWT
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600  # 1 hour in seconds
+    if config == 'testing':
+        # Use SQLite for testing
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        app.config['TESTING'] = True
+        app.config['SECRET_KEY'] = 'test-secret-key'
+        app.config['JWT_SECRET_KEY'] = 'test-secret-key'
+    else:
+        # Configure the app for production/development
+        app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+        app.config['JWT_SECRET_KEY'] = os.getenv('SECRET_KEY')
+        app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
     
-    # Database configuration - MySQL only
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600  # 1 hour in seconds
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Initialize CORS with more permissive settings
