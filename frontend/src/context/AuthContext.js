@@ -27,6 +27,8 @@ export const AuthProvider = ({ children }) => {
   // Function to remove the auth token from localStorage
   const removeToken = () => {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    setCurrentUser(null);
   };
 
   // Function to get auth headers
@@ -37,6 +39,22 @@ export const AuthProvider = ({ children }) => {
       Accept: "application/json",
       Authorization: token ? `Bearer ${token}` : "",
     };
+  };
+
+  // Function to update current user
+  const updateCurrentUser = (user) => {
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("user");
+    }
+    setCurrentUser(user);
+  };
+
+  // Function to get current user from localStorage
+  const getCurrentUser = () => {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
   };
 
   // Function to make authenticated requests
@@ -80,6 +98,12 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
       console.log("Response data:", data);
 
+      // For login endpoint, don't throw error for 2FA responses
+      if (endpoint === "/api/auth/login" && data['2fa_required']) {
+        return data;
+      }
+
+      // For other endpoints or non-2FA responses, check for errors
       if (!response.ok) {
         throw new Error(data.error || data.message || "Request failed");
       }
@@ -95,18 +119,19 @@ export const AuthProvider = ({ children }) => {
     // Check if the user is logged in on page load
     const checkUser = async () => {
       const token = getToken();
-      if (!token) {
+      const user = getCurrentUser();
+      
+      if (!token || !user) {
         setLoading(false);
         return;
       }
 
       try {
         const data = await makeAuthenticatedRequest("/api/auth/user");
-        setCurrentUser(data.user);
+        updateCurrentUser(data.user);
       } catch (err) {
         console.error("Failed to retrieve user:", err);
         removeToken();
-        setCurrentUser(null);
       } finally {
         setLoading(false);
       }
@@ -131,7 +156,7 @@ export const AuthProvider = ({ children }) => {
       );
 
       setToken(data.access_token);
-      setCurrentUser(data.user);
+      updateCurrentUser(data.user);
       return { success: true, data };
     } catch (err) {
       console.error("Registration error:", err);
@@ -148,11 +173,76 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
-      setToken(data.access_token);
-      setCurrentUser(data.user);
-      return { success: true };
+      console.log("Login response data:", data);
+      console.log('typeof data.2fa_required:', typeof data['2fa_required'], 'value:', data['2fa_required']);
+
+      // Check for 2FA requirement first
+      if (data['2fa_required']) {
+        console.log("2FA required, returning 2FA info");
+        return {
+          success: false,
+          twofa_required: true,
+          temp_access_token: data.temp_access_token,
+          message: data.message || "Please enter your 2FA code"
+        };
+      }
+
+      // If we have an access token, login was successful
+      if (data.access_token) {
+        console.log("Login successful, setting token and user");
+        setToken(data.access_token);
+        updateCurrentUser(data.user);
+        return { success: true };
+      }
+
+      // If we get here, something went wrong
+      console.log("Login failed, no token or 2FA");
+      return { success: false, error: data.error || "Login failed" };
     } catch (err) {
       console.error("Login error:", err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const verify2FA = async (token, tempAccessToken) => {
+    setError("");
+    try {
+      const response = await fetch(`${API_URL}/api/auth/verify-2fa`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tempAccessToken}`,
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to verify 2FA token.');
+      }
+
+      // Set the final access token
+      setToken(data.access_token);
+
+      // Get user data with the new token
+      const userResponse = await fetch(`${API_URL}/api/auth/user`, {
+        headers: {
+          'Authorization': `Bearer ${data.access_token}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to get user data');
+      }
+
+      const userData = await userResponse.json();
+      updateCurrentUser(userData.user);
+
+      return { success: true };
+    } catch (err) {
+      console.error("2FA verification error:", err);
       setError(err.message);
       return { success: false, error: err.message };
     }
@@ -171,7 +261,7 @@ export const AuthProvider = ({ children }) => {
       );
 
       setToken(data.access_token);
-      setCurrentUser(data.user);
+      updateCurrentUser(data.user);
       return { success: true };
     } catch (err) {
       console.error("Facial login error:", err);
@@ -192,7 +282,7 @@ export const AuthProvider = ({ children }) => {
       );
 
       // Update current user with has_faceid
-      setCurrentUser((prev) => ({
+      updateCurrentUser((prev) => ({
         ...prev,
         has_faceid: true,
       }));
@@ -207,8 +297,6 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     removeToken();
-    setCurrentUser(null);
-    return { success: true };
   };
 
   const value = {
@@ -217,12 +305,20 @@ export const AuthProvider = ({ children }) => {
     error,
     register,
     login,
-    facialLogin,
-    registerFace,
     logout,
-    getAuthHeaders,
+    verify2FA,
+    registerFace,
     makeAuthenticatedRequest,
+    getAuthHeaders,
+    updateCurrentUser,
+    getCurrentUser
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
+export default AuthContext;

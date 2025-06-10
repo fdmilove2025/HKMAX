@@ -366,7 +366,8 @@ def get_user():
                 'username': user.username,
                 'email': user.email,
                 'age': user.age,
-                'has_faceid': user.has_faceid
+                'has_faceid': user.has_faceid,
+                'is_two_factor_enabled': user.is_two_factor_enabled
             }
         })
         

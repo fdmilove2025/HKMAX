@@ -6,10 +6,13 @@ import { useTheme } from "../context/ThemeContext";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [twoFactorToken, setTwoFactorToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const { login } = useAuth();
+  const [tempAuthToken, setTempAuthToken] = useState("");
+  const [show2FAInput, setShow2FAInput] = useState(false);
+  const { login, verify2FA } = useAuth();
   const { darkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,18 +30,39 @@ const Login = () => {
     setLoading(true);
 
     try {
+      // If 2FA input is shown, verify 2FA
+      if (show2FAInput) {
+        const result = await verify2FA(twoFactorToken, tempAuthToken);
+        
+        if (result.success) {
+          navigate('/');
+          return;
+        } else {
+          setError(result.error);
+          return;
+        }
+      }
+
+      // Regular login attempt
       const result = await login(email, password);
+      console.log("Login result:", result);
+
       if (result.success) {
-        // If we were redirected from somewhere, go back there
         const redirectTo = location.state?.from || "/";
         navigate(redirectTo, { replace: true });
         window.scrollTo(0, 0);
-      } else {
-        setError(result.error || "Login failed");
+      } else if (result.twofa_required) {
+        setTempAuthToken(result.temp_access_token);
+        setShow2FAInput(true);
+        setMessage(result.message);
+        setError("");
+      } else if (result.success === false && !result.twofa_required) {
+        console.log("Login failed:", result.error);
+        setError(result.error || "Invalid email or password");
       }
     } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
-      console.error(err);
+      console.error("Login error:", err);
+      setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -80,145 +104,111 @@ const Login = () => {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Email address
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-dark-200 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:border-futuristic-blue dark:focus:border-neon-blue sm:text-sm transition-all duration-200"
-                  placeholder="you@example.com"
-                />
-              </div>
-            </div>
+            {!show2FAInput ? (
+              <>
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Email address
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-dark-200 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:border-futuristic-blue dark:focus:border-neon-blue sm:text-sm transition-all duration-200"
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-dark-200 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:border-futuristic-blue dark:focus:border-neon-blue sm:text-sm transition-all duration-200"
-                  placeholder="••••••••"
-                />
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Password
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-dark-200 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:border-futuristic-blue dark:focus:border-neon-blue sm:text-sm transition-all duration-200"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label
+                  htmlFor="twoFactorToken"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Two-Factor Authentication Code
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="twoFactorToken"
+                    name="twoFactorToken"
+                    type="text"
+                    required
+                    value={twoFactorToken}
+                    onChange={(e) => setTwoFactorToken(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-dark-200 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:border-futuristic-blue dark:focus:border-neon-blue sm:text-sm transition-all duration-200"
+                    placeholder="Enter 6-digit code"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                ${
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
                   loading
-                    ? "bg-blue-400 dark:bg-blue-600 cursor-not-allowed"
-                    : "bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300"
-                }`}
+                    ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
+                    : "bg-futuristic-blue dark:bg-neon-blue hover:bg-futuristic-blue/90 dark:hover:bg-neon-blue/90"
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-colors duration-200`}
               >
-                {loading ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Signing in...
-                  </span>
-                ) : (
-                  "Sign in"
-                )}
+                {loading ? (show2FAInput ? "Verifying..." : "Signing in...") : (show2FAInput ? "Verify" : "Sign in")}
               </button>
             </div>
+
+            {!show2FAInput && (
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  <Link
+                    to="/forgot-password"
+                    className="font-medium text-futuristic-blue dark:text-neon-blue hover:text-futuristic-blue/90 dark:hover:text-neon-blue/90"
+                  >
+                    Forgot your password?
+                  </Link>
+                </div>
+                <div className="text-sm">
+                  <button
+                    type="button"
+                    onClick={handleFacialLogin}
+                    className="font-medium text-futuristic-blue dark:text-neon-blue hover:text-futuristic-blue/90 dark:hover:text-neon-blue/90"
+                  >
+                    Login with Face ID
+                  </button>
+                </div>
+              </div>
+            )}
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-dark-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-dark-100 text-gray-500 dark:text-gray-400">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <button
-                onClick={handleFacialLogin}
-                className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-200"
-              >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                Facial Login
-              </button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-dark-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-dark-100 text-gray-500 dark:text-gray-400">
-                    New to InvestBuddy?
-                  </span>
-                </div>
-              </div>
-
-              <Link
-                to="/register"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-200"
-                onClick={() => window.scrollTo(0, 0)}
-              >
-                Create an account
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>
