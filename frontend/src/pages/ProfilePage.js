@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 // API base URL - adjust if needed
 const API_URL = 'http://localhost:5001';
@@ -8,6 +9,7 @@ const API_URL = 'http://localhost:5001';
 const ProfilePage = () => {
   const { currentUser, getAuthHeaders, makeAuthenticatedRequest, updateCurrentUser } = useAuth();
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
@@ -23,6 +25,7 @@ const ProfilePage = () => {
   const [qrCode, setQrCode] = useState('');
   const [twoFactorToken, setTwoFactorToken] = useState('');
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [hasFaceId, setHasFaceId] = useState(false);
 
   // Initialize form with current user data
   useEffect(() => {
@@ -30,7 +33,9 @@ const ProfilePage = () => {
       setUsername(currentUser.username || '');
       setEmail(currentUser.email || '');
       setIs2FAEnabled(currentUser.is_two_factor_enabled === true);
+      setHasFaceId(currentUser.has_faceid === true);
       console.log('Current user 2FA status:', currentUser.is_two_factor_enabled);
+      console.log('Current user Face ID status:', currentUser.has_faceid);
     }
   }, [currentUser]);
 
@@ -41,7 +46,9 @@ const ProfilePage = () => {
         const user_data = await makeAuthenticatedRequest('/api/auth/user', 'GET');
         updateCurrentUser(user_data.user);
         setIs2FAEnabled(user_data.user.is_two_factor_enabled === true);
+        setHasFaceId(user_data.user.has_faceid === true);
         console.log('Updated 2FA status:', user_data.user.is_two_factor_enabled);
+        console.log('Updated Face ID status:', user_data.user.has_faceid);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
       }
@@ -251,6 +258,39 @@ const ProfilePage = () => {
                          bg-white dark:bg-dark-100 text-gray-900 dark:text-white
                          focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:border-transparent"
               />
+            </div>
+          </div>
+          
+          {/* Facial Recognition Section */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Facial Recognition</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex-grow mr-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {hasFaceId 
+                    ? 'Facial recognition is currently enabled for your account.'
+                    : 'Enable facial recognition for faster and more secure login.'}
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                {hasFaceId ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/facial-registration')}
+                    className="w-full px-6 py-2 bg-futuristic-blue dark:bg-neon-blue text-white rounded-lg hover:bg-futuristic-blue/90 dark:hover:bg-neon-blue/90 focus:outline-none focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:ring-offset-2 transition-colors"
+                  >
+                    Update Face ID
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/facial-registration')}
+                    className="w-full px-6 py-2 bg-futuristic-blue dark:bg-neon-blue text-white rounded-lg hover:bg-futuristic-blue/90 dark:hover:bg-neon-blue/90 focus:outline-none focus:ring-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue focus:ring-offset-2 transition-colors"
+                  >
+                    Enable Face ID
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           

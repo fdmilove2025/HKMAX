@@ -14,7 +14,14 @@ const FacialRegistration = () => {
   const canvasRef = useRef(null);
   const { darkMode } = useTheme();
   const navigate = useNavigate();
-  const { registerFace } = useAuth();
+  const { registerFace, currentUser } = useAuth();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login', { state: { from: '/facial-registration' } });
+    }
+  }, [currentUser, navigate]);
 
   // Cleanup function
   useEffect(() => {
@@ -124,7 +131,7 @@ const FacialRegistration = () => {
       if (result.success) {
         setStep(4); // Move to success step
         setTimeout(() => {
-          navigate("/dashboard");
+          navigate("/");
         }, 2000);
       } else {
         throw new Error(result.error || "Failed to register face");
@@ -263,27 +270,30 @@ const FacialRegistration = () => {
 
           {renderStep()}
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-dark-300"></div>
+          {/* Only show email login option if user is not authenticated */}
+          {!currentUser && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-dark-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-dark-100 text-gray-500 dark:text-gray-400">
+                    Or continue with
+                  </span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-dark-100 text-gray-500 dark:text-gray-400">
-                  Or continue with
-                </span>
-              </div>
-            </div>
 
-            <div className="mt-6">
-              <button
-                onClick={() => navigate("/login")}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-200"
-              >
-                Email Login
-              </button>
-            </div>
-          </div>
+              <div className="mt-6">
+                <button
+                  onClick={() => navigate("/login")}
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-200"
+                >
+                  Email Login
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

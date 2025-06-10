@@ -75,13 +75,19 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-20">
+    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          Start building your smarter investment portfolio
+          Or{' '}
+          <Link
+            to="/register"
+            className="font-medium text-futuristic-blue dark:text-neon-blue hover:underline"
+          >
+            create a new account
+          </Link>
         </p>
       </div>
 
@@ -98,7 +104,7 @@ const Login = () => {
 
           {message && (
             <div
-              className="mb-4 bg-blue-100 dark:bg-blue-900/30 border border-blue-400 dark:border-blue-600 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-md relative"
+              className="mb-4 bg-blue-100 dark:bg-blue-900/30 border border-blue-400 dark:border-blue-800 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-md relative"
               role="alert"
             >
               <span className="block sm:inline">{message}</span>
@@ -179,38 +185,34 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                  loading
-                    ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
-                    : "bg-futuristic-blue dark:bg-neon-blue hover:bg-futuristic-blue/90 dark:hover:bg-neon-blue/90"
-                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-colors duration-200`}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-futuristic-blue to-futuristic-cyan dark:from-neon-blue dark:to-futuristic-cyan hover:from-futuristic-cyan hover:to-futuristic-blue dark:hover:from-futuristic-cyan dark:hover:to-neon-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-300 disabled:opacity-50"
               >
-                {loading ? (show2FAInput ? "Verifying..." : "Signing in...") : (show2FAInput ? "Verify" : "Sign in")}
+                {loading ? "Signing in..." : "Sign in"}
               </button>
             </div>
-
-            {!show2FAInput && (
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  <Link
-                    to="/forgot-password"
-                    className="font-medium text-futuristic-blue dark:text-neon-blue hover:text-futuristic-blue/90 dark:hover:text-neon-blue/90"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
-                <div className="text-sm">
-                  <button
-                    type="button"
-                    onClick={handleFacialLogin}
-                    className="font-medium text-futuristic-blue dark:text-neon-blue hover:text-futuristic-blue/90 dark:hover:text-neon-blue/90"
-                  >
-                    Login with Face ID
-                  </button>
-                </div>
-              </div>
-            )}
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-dark-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-dark-100 text-gray-500 dark:text-gray-400">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                onClick={handleFacialLogin}
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-dark-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-200 hover:bg-gray-50 dark:hover:bg-dark-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-blue dark:focus:ring-neon-blue transition-all duration-200"
+              >
+                Facial Login
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -218,3 +220,4 @@ const Login = () => {
 };
 
 export default Login;
+

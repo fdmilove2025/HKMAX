@@ -71,11 +71,11 @@ const AppContent = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen transition-all duration-300 bg-gray-50 dark:bg-black font-sans">
+    <div className="min-h-screen flex flex-col transition-all duration-300 bg-gray-50 dark:bg-black font-sans">
       <ScrollToTop />
       <Header />
 
-      <main className="animate-fade-in transition-all duration-300 pb-20 pt-16 mt-4">
+      <main className="flex-grow animate-fade-in transition-all duration-300 pb-20 pt-16 mt-4">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
@@ -119,9 +119,9 @@ const AppContent = () => {
         </Routes>
       </main>
 
-      <footer className="bg-white border-t border-gray-200 py-4">
+      <footer className="mt-auto bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4">
         <div className="container mx-auto px-4">
-          <p className="text-center text-gray-600 text-sm">
+          <p className="text-center text-sm text-gray-600 dark:text-gray-400">
             &copy; {new Date().getFullYear()} I-Buddy - Code Baggers
           </p>
         </div>
