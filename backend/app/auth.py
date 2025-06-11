@@ -248,19 +248,28 @@ def verify_2fa():
         return jsonify({'error': 'Missing 2FA token'}), 400
 
     totp = pyotp.TOTP(user.two_factor_secret)
-
-    if totp.verify(data['token']):
-        if not user.is_two_factor_enabled:
-            user.is_two_factor_enabled = True
-            db.session.commit()
-        
-        access_token = create_access_token(identity=user.id)
-        return jsonify({
-            'message': '2FA verified successfully.',
-            'access_token': access_token
-        }), 200
-    else:
+    if not totp.verify(data['token']):
         return jsonify({'error': 'Invalid 2FA token'}), 401
+
+    # Enable 2FA for the user
+    user.is_two_factor_enabled = True
+    db.session.commit()
+
+    # Create a new access token
+    access_token = create_access_token(identity=user.id)
+
+    return jsonify({
+        'message': '2FA enabled successfully',
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'age': user.age,
+            'has_faceid': user.has_faceid,
+            'is_two_factor_enabled': user.is_two_factor_enabled
+        },
+        'access_token': access_token
+    })
 
 @auth_bp.route('/disable-2fa', methods=['POST'])
 @jwt_required()
