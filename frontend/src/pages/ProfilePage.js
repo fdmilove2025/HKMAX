@@ -112,13 +112,22 @@ const ProfilePage = () => {
 
   const handleVerify2FA = async () => {
     try {
-      await makeAuthenticatedRequest('/api/auth/verify-2fa', 'POST', { token: twoFactorToken });
-      setShow2FAModal(false);
+      const response = await makeAuthenticatedRequest('/api/auth/verify-2fa', 'POST', { token: twoFactorToken });
+      
+      // Update local state
       setIs2FAEnabled(true);
+      
+      // Update user data in context
+      if (response.user) {
+        updateCurrentUser(response.user);
+      } else {
+        // If user data not in response, fetch it
+        const user_data = await makeAuthenticatedRequest('/api/auth/user', 'GET');
+        updateCurrentUser(user_data.user);
+      }
+      
+      setShow2FAModal(false);
       setMessage({ type: 'success', text: '2FA enabled successfully!' });
-      // Refresh user data
-      const user_data = await makeAuthenticatedRequest('/api/auth/user', 'GET');
-      updateCurrentUser(user_data.user);
       // Clear the token
       setTwoFactorToken('');
     } catch (error) {
@@ -133,12 +142,21 @@ const ProfilePage = () => {
       return;
     }
     try {
-      await makeAuthenticatedRequest('/api/auth/disable-2fa', 'POST', { password: currentPassword });
+      const response = await makeAuthenticatedRequest('/api/auth/disable-2fa', 'POST', { password: currentPassword });
+      
+      // Update local state
       setIs2FAEnabled(false);
+      
+      // Update user data in context
+      if (response.user) {
+        updateCurrentUser(response.user);
+      } else {
+        // If user data not in response, fetch it
+        const user_data = await makeAuthenticatedRequest('/api/auth/user', 'GET');
+        updateCurrentUser(user_data.user);
+      }
+      
       setMessage({ type: 'success', text: '2FA disabled successfully!' });
-      // Refresh user data
-      const user_data = await makeAuthenticatedRequest('/api/auth/user', 'GET');
-      updateCurrentUser(user_data.user);
       // Clear the password field
       setCurrentPassword('');
     } catch (error) {

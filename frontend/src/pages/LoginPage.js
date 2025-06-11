@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -6,17 +6,24 @@ import { useTheme } from '../contexts/ThemeContext';
 const API_URL = 'http://localhost:5001'; // Change if required
 
 const LoginPage = () => {
+    const { login, currentUser } = useAuth();
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const navigate = useNavigate();
-    const { login } = useAuth();
     const { isDarkMode } = useTheme();
 
     const [show2FAModal, setShow2FAModal] = useState(false);
     const [twoFactorToken, setTwoFactorToken] = useState('');
     const [tempAuthToken, setTempAuthToken] = useState('');
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (currentUser) {
+            navigate('/');
+        }
+    }, [currentUser, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
