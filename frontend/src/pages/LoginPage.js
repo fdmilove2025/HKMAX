@@ -24,13 +24,15 @@ const LoginPage = () => {
         setIsLoading(true);
 
         try {
-            const data = await login(email, password);
+            const result = await login(email, password);
 
-            if (data.twofa_required) {
-                setTempAuthToken(data.temp_access_token);
+            if (result.twofa_required) {
+                setTempAuthToken(result.temp_access_token);
                 setShow2FAModal(true);
-            } else {
+            } else if (result.success) {
                 navigate('/');
+            } else {
+                setError(result.message || 'Login failed');
             }
         } catch (err) {
             setError(err.message || 'An error occurred during login.');
@@ -40,6 +42,11 @@ const LoginPage = () => {
     };
 
     const handleVerify2FA = async () => {
+        if (!twoFactorToken || twoFactorToken.length !== 6) {
+            setError('Please enter a valid 6-digit code');
+            return;
+        }
+
         setIsLoading(true);
         setError('');
         try {
@@ -58,7 +65,24 @@ const LoginPage = () => {
                 throw new Error(data.error || 'Failed to verify 2FA token.');
             }
 
-            localStorage.setItem('authToken', data.access_token);
+            // Store the final access token
+            localStorage.setItem('token', data.access_token);
+            
+            // Update user data
+            const userResponse = await fetch(`${API_URL}/api/auth/user`, {
+                headers: {
+                    'Authorization': `Bearer ${data.access_token}`,
+                },
+            });
+
+            if (!userResponse.ok) {
+                throw new Error('Failed to get user data');
+            }
+
+            const userData = await userResponse.json();
+            localStorage.setItem('user', JSON.stringify(userData.user));
+
+            // Redirect to home page
             window.location.href = '/';
         } catch (err) {
             setError(err.message);

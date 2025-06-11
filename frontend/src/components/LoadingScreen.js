@@ -7,14 +7,16 @@ const LoadingScreen = () => {
   const [tipIndex, setTipIndex] = useState(0);
   const [currentTip, setCurrentTip] = useState("Analyzing your investment profile...");
   
-  // Update tip every 7 seconds
+  // Update tip every 15 seconds instead of 7
   useEffect(() => {
     const interval = setInterval(() => {
       setTipIndex(prevIndex => prevIndex + 1);
       setCurrentTip(getCurrentTip());
-    }, 7000);
+    }, 15000);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [getCurrentTip]);
   
   return (

@@ -26,12 +26,47 @@ export const PortfolioProvider = ({ children }) => {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const tipsLoaded = useRef(false);
   const [portfolioHistory, setPortfolioHistory] = useState([]);
+  const lastFetchTime = useRef(0);
+  const CACHE_DURATION = 60000; // 1 minute cache
   
-  // Function to fetch portfolio history
+  const fetchFinancialTips = useCallback(async () => {
+    try {
+      const response = await makeAuthenticatedRequest('/api/portfolio/tips', 'GET');
+      setFinancialTips(response.tips);
+    } catch (err) {
+      setError('Failed to fetch financial tips');
+    }
+  }, [makeAuthenticatedRequest]);
+  
+  // Function to fetch portfolio history with caching
   const fetchPortfolioHistory = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastFetchTime.current < CACHE_DURATION) {
+      // Return cached data from localStorage
+      const cachedData = localStorage.getItem('cache_portfolio_history');
+      if (cachedData && cachedData !== 'undefined') {
+        try {
+          const parsedData = JSON.parse(cachedData);
+          setPortfolioHistory(parsedData);
+          return;
+        } catch (e) {
+          console.warn('Failed to parse cached portfolio history:', e);
+          // If parsing fails, continue with the request
+        }
+      }
+    }
+    
     try {
       const response = await makeAuthenticatedRequest('/api/portfolio/history', 'GET');
-      setPortfolioHistory(response.history);
+      if (response && response.history) {
+        setPortfolioHistory(response.history);
+        lastFetchTime.current = now;
+        try {
+          localStorage.setItem('cache_portfolio_history', JSON.stringify(response.history));
+        } catch (e) {
+          console.warn('Failed to cache portfolio history:', e);
+        }
+      }
     } catch (err) {
       setError('Failed to fetch portfolio history');
     }
@@ -43,12 +78,27 @@ export const PortfolioProvider = ({ children }) => {
       fetchFinancialTips();
       tipsLoaded.current = true;
     }
-  }, []);
+  }, [fetchFinancialTips]);
   
+  // Fetch portfolio history with debounce
   useEffect(() => {
+    let mounted = true;
+    let timeoutId;
+    
     if (currentUser) {
-      fetchPortfolioHistory();
+      timeoutId = setTimeout(() => {
+        if (mounted) {
+          fetchPortfolioHistory();
+        }
+      }, 1000); // 1 second debounce
     }
+    
+    return () => {
+      mounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [currentUser, fetchPortfolioHistory]);
   
   // Rotate through financial tips during loading
@@ -61,7 +111,7 @@ export const PortfolioProvider = ({ children }) => {
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [financialTips.length, currentTipIndex]);
+  }, [financialTips.length]);
   
   // Update answers for a specific question
   const updateAnswer = (question, answer) => {
@@ -106,15 +156,6 @@ export const PortfolioProvider = ({ children }) => {
     if (securities.length > 0) setSecurities([]);
     if (insights) setInsights('');
   };
-  
-  const fetchFinancialTips = useCallback(async () => {
-    try {
-      const response = await makeAuthenticatedRequest('/api/portfolio/tips', 'GET');
-      setFinancialTips(response.tips);
-    } catch (err) {
-      setError('Failed to fetch financial tips');
-    }
-  }, [makeAuthenticatedRequest]);
   
   // Get current financial tip
   const getCurrentTip = () => {

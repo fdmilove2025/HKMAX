@@ -21,6 +21,11 @@ const ExploreSecuritiesPage = () => {
   const userIsTyping = useRef(false);
   const searchInputRef = useRef(null);
   
+  // Cache for portfolio history
+  const [portfolioHistoryCache, setPortfolioHistoryCache] = useState(null);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const CACHE_DURATION = 60000; // 1 minute cache
+  
   // Define a debounced function to search for stocks
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
@@ -149,6 +154,15 @@ const ExploreSecuritiesPage = () => {
   const checkQuestionnaire = async () => {
     try {
       setIsQuestionnaireFetching(true);
+      
+      // Check if we have a valid cached response
+      const now = Date.now();
+      if (portfolioHistoryCache && (now - lastFetchTime) < CACHE_DURATION) {
+        const hasPortfolio = portfolioHistoryCache.portfolios && portfolioHistoryCache.portfolios.length > 0;
+        setHasQuestionnaire(hasPortfolio);
+        return hasPortfolio;
+      }
+
       const response = await fetch('http://localhost:5001/api/portfolio/history', {
         method: 'GET',
         credentials: 'include',
@@ -158,7 +172,6 @@ const ExploreSecuritiesPage = () => {
       });
       
       if (response.status === 401) {
-        // User is not authenticated
         setHasQuestionnaire(false);
         return false;
       }
@@ -168,7 +181,10 @@ const ExploreSecuritiesPage = () => {
       }
       
       const data = await response.json();
-      // If there are portfolios, user has completed questionnaire
+      // Cache the response
+      setPortfolioHistoryCache(data);
+      setLastFetchTime(now);
+      
       const hasPortfolio = data.portfolios && data.portfolios.length > 0;
       setHasQuestionnaire(hasPortfolio);
       return hasPortfolio;
@@ -184,6 +200,12 @@ const ExploreSecuritiesPage = () => {
   // Check if user is logged in
   const checkLogin = async () => {
     try {
+      // Use cached response if available
+      const now = Date.now();
+      if (portfolioHistoryCache && (now - lastFetchTime) < CACHE_DURATION) {
+        return true;
+      }
+
       const response = await fetch('http://localhost:5001/api/portfolio/history', {
         method: 'GET',
         credentials: 'include',
@@ -237,6 +259,32 @@ const ExploreSecuritiesPage = () => {
   // Fetch recommended securities from portfolio history
   const fetchRecommendedSecurities = async () => {
     try {
+      // Use cached response if available
+      const now = Date.now();
+      if (portfolioHistoryCache && (now - lastFetchTime) < CACHE_DURATION) {
+        const data = portfolioHistoryCache;
+        if (data.portfolios && data.portfolios.length > 0) {
+          const latestPortfolio = data.portfolios[0];
+          if (latestPortfolio.securities && latestPortfolio.securities.length > 0) {
+            const recommendedSecurities = latestPortfolio.securities.map(security => ({
+              symbol: security.ticker || security.symbol,
+              name: security.name,
+              type: security.assetClass || 'stock',
+              isRecommended: true
+            }));
+            
+            setWatchlist(prevWatchlist => {
+              const existingSymbols = new Set(prevWatchlist.map(item => item.symbol));
+              const newSecurities = recommendedSecurities.filter(
+                security => !existingSymbols.has(security.symbol)
+              );
+              return [...prevWatchlist, ...newSecurities];
+            });
+          }
+        }
+        return;
+      }
+
       const response = await fetch('http://localhost:5001/api/portfolio/history', {
         method: 'GET',
         credentials: 'include',
@@ -250,31 +298,25 @@ const ExploreSecuritiesPage = () => {
       }
       
       const data = await response.json();
+      // Cache the response
+      setPortfolioHistoryCache(data);
+      setLastFetchTime(now);
       
-      // Get the most recent portfolio's securities
       if (data.portfolios && data.portfolios.length > 0) {
-        const latestPortfolio = data.portfolios[0]; // Assuming sorted newest first
-        
+        const latestPortfolio = data.portfolios[0];
         if (latestPortfolio.securities && latestPortfolio.securities.length > 0) {
-          // Transform portfolio securities to match watchlist format
           const recommendedSecurities = latestPortfolio.securities.map(security => ({
             symbol: security.ticker || security.symbol,
             name: security.name,
             type: security.assetClass || 'stock',
-            isRecommended: true // Mark as recommended
+            isRecommended: true
           }));
           
-          // Add recommended securities to watchlist without duplicates
           setWatchlist(prevWatchlist => {
-            // Get existing symbols to avoid duplicates
             const existingSymbols = new Set(prevWatchlist.map(item => item.symbol));
-            
-            // Filter out securities that are already in the watchlist
             const newSecurities = recommendedSecurities.filter(
               security => !existingSymbols.has(security.symbol)
             );
-            
-            // Return combined list with existing watchlist items preserved
             return [...prevWatchlist, ...newSecurities];
           });
         }

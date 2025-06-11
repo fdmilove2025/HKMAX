@@ -34,27 +34,31 @@ const ProfilePage = () => {
       setEmail(currentUser.email || '');
       setIs2FAEnabled(currentUser.is_two_factor_enabled === true);
       setHasFaceId(currentUser.has_faceid === true);
-      console.log('Current user 2FA status:', currentUser.is_two_factor_enabled);
-      console.log('Current user Face ID status:', currentUser.has_faceid);
     }
   }, [currentUser]);
 
   // Fetch latest user data on component mount
   useEffect(() => {
+    let mounted = true;
     const fetchUserData = async () => {
       try {
         const user_data = await makeAuthenticatedRequest('/api/auth/user', 'GET');
-        updateCurrentUser(user_data.user);
-        setIs2FAEnabled(user_data.user.is_two_factor_enabled === true);
-        setHasFaceId(user_data.user.has_faceid === true);
-        console.log('Updated 2FA status:', user_data.user.is_two_factor_enabled);
-        console.log('Updated Face ID status:', user_data.user.has_faceid);
+        if (mounted) {
+          updateCurrentUser(user_data.user);
+          setIs2FAEnabled(user_data.user.is_two_factor_enabled === true);
+          setHasFaceId(user_data.user.has_faceid === true);
+        }
       } catch (error) {
-        console.error('Failed to fetch user data:', error);
+        if (mounted) {
+          console.error('Failed to fetch user data:', error);
+        }
       }
     };
     fetchUserData();
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [makeAuthenticatedRequest, updateCurrentUser]);
   
   const handleProfileUpdate = async (e) => {
     e.preventDefault();

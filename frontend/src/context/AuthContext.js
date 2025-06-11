@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from "react";
 
 // API base URL - adjust if needed
 const API_URL = "http://localhost:5001";
@@ -14,14 +14,16 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const lastFetchTime = useRef(0);
+  const CACHE_DURATION = 60000; // 1 minute cache
 
   // Function to get the auth token from localStorage
-  const getToken = () => {
+  const getToken = useCallback(() => {
     return localStorage.getItem("token");
-  };
+  }, []);
 
   // Function to set the auth token in localStorage
-  const setAuthToken = (newToken) => {
+  const setAuthToken = useCallback((newToken) => {
     if (newToken) {
       localStorage.setItem("token", newToken);
       setToken(newToken);
@@ -29,51 +31,64 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem("token");
       setToken(null);
     }
-  };
+  }, []);
 
   // Function to remove the auth token from localStorage
-  const removeToken = () => {
+  const removeToken = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setCurrentUser(null);
     setToken(null);
-  };
+  }, []);
 
   // Function to get auth headers
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const token = getToken();
     return {
       "Content-Type": "application/json",
       Accept: "application/json",
       Authorization: token ? `Bearer ${token}` : "",
     };
-  };
+  }, [getToken]);
 
   // Function to update current user
-  const updateCurrentUser = (user) => {
+  const updateCurrentUser = useCallback((user) => {
     if (user) {
       localStorage.setItem("user", JSON.stringify(user));
     } else {
       localStorage.removeItem("user");
     }
     setCurrentUser(user);
-  };
+  }, []);
 
   // Function to get current user from localStorage
-  const getCurrentUser = () => {
+  const getCurrentUser = useCallback(() => {
     const userStr = localStorage.getItem("user");
     return userStr ? JSON.parse(userStr) : null;
-  };
+  }, []);
 
-  // Function to make authenticated requests
-  const makeAuthenticatedRequest = async (
+  // Function to make authenticated requests with caching
+  const makeAuthenticatedRequest = useCallback(async (
     endpoint,
     method = "GET",
     body = null
   ) => {
     const url = `${API_URL}${endpoint}`;
-    console.log(`Making ${method} request to:`, url);
-    console.log("Request headers:", getAuthHeaders());
+    const now = Date.now();
+    
+    // Check cache for GET requests
+    if (method === 'GET' && now - lastFetchTime.current < CACHE_DURATION) {
+      // Return cached data from localStorage
+      const cachedData = localStorage.getItem(`cache_${endpoint}`);
+      if (cachedData && cachedData !== 'undefined') {
+        try {
+          return JSON.parse(cachedData);
+        } catch (e) {
+          console.warn('Failed to parse cached data:', e);
+          // If parsing fails, continue with the request
+        }
+      }
+    }
 
     const options = {
       method,
@@ -83,28 +98,19 @@ export const AuthProvider = ({ children }) => {
 
     if (body) {
       options.body = JSON.stringify(body);
-      console.log("Request body:", body);
     }
 
     try {
-      console.log("Sending request with options:", options);
       const response = await fetch(url, options);
-      console.log("Response status:", response.status);
-      console.log(
-        "Response headers:",
-        Object.fromEntries(response.headers.entries())
-      );
 
       // Check if response is JSON
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        console.error("Received non-JSON response:", text);
         throw new Error("Server returned non-JSON response");
       }
 
       const data = await response.json();
-      console.log("Response data:", data);
 
       // For login endpoint, don't throw error for 2FA responses
       if (endpoint === "/api/auth/login" && data['2fa_required']) {
@@ -116,14 +122,23 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || data.message || "Request failed");
       }
 
+      // Cache successful GET responses
+      if (method === 'GET' && data) {
+        lastFetchTime.current = now;
+        try {
+          localStorage.setItem(`cache_${endpoint}`, JSON.stringify(data));
+        } catch (e) {
+          console.warn('Failed to cache data:', e);
+        }
+      }
+
       return data;
     } catch (error) {
-      console.error("Request error:", error);
       throw error;
     }
-  };
+  }, [getAuthHeaders]);
 
-  // Function to fetch current user data
+  // Function to fetch current user data with debounce
   const fetchCurrentUser = useCallback(async () => {
     try {
       const response = await makeAuthenticatedRequest('/api/auth/user', 'GET');
@@ -133,13 +148,25 @@ export const AuthProvider = ({ children }) => {
     }
   }, [makeAuthenticatedRequest, removeToken]);
 
-  // Effect to check token and fetch user data on mount
+  // Effect to check token and fetch user data on mount with debounce
   useEffect(() => {
+    let timeoutId;
     const token = localStorage.getItem('token');
+    
     if (token) {
       setAuthToken(token);
-      fetchCurrentUser();
+      timeoutId = setTimeout(() => {
+        fetchCurrentUser();
+      }, 1000); // 1 second debounce
+    } else {
+      setLoading(false);
     }
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [fetchCurrentUser, setAuthToken]);
 
   const register = async (email, username, password, age, faceid = false) => {
@@ -191,7 +218,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || 'Login failed');
       }
 
-      if (data.twofa_required) {
+      // Check for 2FA requirement
+      if (data.twofa_required || data['2fa_required']) {
         return {
           success: false,
           twofa_required: true,
@@ -200,12 +228,17 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
-      setAuthToken(data.access_token);
-      setCurrentUser(data.user);
-      return { success: true };
+      // If no 2FA required, proceed with normal login
+      if (data.access_token) {
+        setAuthToken(data.access_token);
+        setCurrentUser(data.user);
+        return { success: true };
+      }
+
+      throw new Error('Invalid response from server');
     } catch (err) {
       setError(err.message);
-      return { success: false, error: err.message };
+      throw err; // Re-throw the error to be handled by the component
     }
   };
 
