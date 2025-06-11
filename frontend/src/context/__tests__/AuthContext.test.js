@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AuthProvider, useAuth } from '../AuthContext';
+import { renderHook } from '@testing-library/react-hooks';
 
 // Test component that uses the auth context
 const TestComponent = () => {
@@ -52,9 +53,7 @@ describe('AuthContext', () => {
     );
 
     // Click login button
-    await act(async () => {
-      await userEvent.click(screen.getByText('Login'));
-    });
+    await userEvent.click(screen.getByText('Login'));
 
     // Verify localStorage was updated
     expect(localStorage.setItem).toHaveBeenCalledWith('authToken', mockToken);
@@ -82,9 +81,7 @@ describe('AuthContext', () => {
     );
 
     // Click login button
-    await act(async () => {
-      await userEvent.click(screen.getByText('Login'));
-    });
+    await userEvent.click(screen.getByText('Login'));
 
     // Verify error state was updated
     await waitFor(() => {
@@ -105,9 +102,7 @@ describe('AuthContext', () => {
     );
 
     // Click logout button
-    await act(async () => {
-      await userEvent.click(screen.getByText('Logout'));
-    });
+    await userEvent.click(screen.getByText('Logout'));
 
     // Verify localStorage was cleared
     expect(localStorage.removeItem).toHaveBeenCalledWith('authToken');
@@ -117,5 +112,43 @@ describe('AuthContext', () => {
     await waitFor(() => {
       expect(screen.getByTestId('user')).toHaveTextContent('No user');
     });
+  });
+
+  test('login success', async () => {
+    const { result } = renderHook(() => useAuth());
+    
+    await waitFor(() => {
+      expect(result.current.login).toBeDefined();
+    });
+
+    const loginResult = await result.current.login('test@example.com', 'password123');
+    expect(loginResult.success).toBe(true);
+  });
+
+  test('login failure', async () => {
+    const { result } = renderHook(() => useAuth());
+    
+    await waitFor(() => {
+      expect(result.current.login).toBeDefined();
+    });
+
+    const loginResult = await result.current.login('test@example.com', 'wrongpassword');
+    expect(loginResult.success).toBe(false);
+  });
+
+  test('register success', async () => {
+    const { result } = renderHook(() => useAuth());
+    
+    await waitFor(() => {
+      expect(result.current.register).toBeDefined();
+    });
+
+    const registerResult = await result.current.register(
+      'newuser@example.com',
+      'newuser',
+      'password123',
+      25
+    );
+    expect(registerResult.success).toBe(true);
   });
 }); 

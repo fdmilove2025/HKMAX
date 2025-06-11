@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 const PortfolioContext = createContext();
@@ -6,7 +6,7 @@ const PortfolioContext = createContext();
 export const usePortfolio = () => useContext(PortfolioContext);
 
 export const PortfolioProvider = ({ children }) => {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, makeAuthenticatedRequest } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({
     investmentGoal: '',
@@ -25,6 +25,8 @@ export const PortfolioProvider = ({ children }) => {
   const [financialTips, setFinancialTips] = useState([]);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const tipsLoaded = useRef(false);
+  const [error, setError] = useState(null);
+  const [portfolioHistory, setPortfolioHistory] = useState([]);
   
   // Fetch financial tips when component mounts or when navigating to questionnaire
   useEffect(() => {
@@ -34,59 +36,34 @@ export const PortfolioProvider = ({ children }) => {
     }
   }, []);
   
+  useEffect(() => {
+    if (currentUser) {
+      fetchPortfolioHistory();
+      fetchFinancialTips();
+    }
+  }, [currentUser, fetchPortfolioHistory, fetchFinancialTips]);
+  
   // Rotate through financial tips during loading
   useEffect(() => {
-    let tipInterval;
-    
-    if (loading && financialTips.length > 0) {
-      console.log("Setting up tip rotation. Current index:", currentTipIndex);
-      console.log("First tip:", financialTips[0]);
-      
-      // Reset to the first tip when loading starts
-      setCurrentTipIndex(0);
-      
-      tipInterval = setInterval(() => {
-        setCurrentTipIndex(prevIndex => {
-          const newIndex = prevIndex === financialTips.length - 1 ? 0 : prevIndex + 1;
-          console.log("Rotating to tip index:", newIndex, "Content:", financialTips[newIndex]);
-          return newIndex;
-        });
-      }, 8000); // Change tip every 8 seconds
+    if (financialTips.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentTipIndex((prevIndex) => 
+          prevIndex === financialTips.length - 1 ? 0 : prevIndex + 1
+        );
+      }, 5000);
+      return () => clearInterval(interval);
     }
-    
-    return () => {
-      if (tipInterval) {
-        console.log("Clearing tip rotation interval");
-        clearInterval(tipInterval);
-      }
-    };
-  }, [loading, financialTips]);
+  }, [financialTips.length, currentTipIndex]);
   
   // Pre-fetch tips so they're ready when needed
-  const fetchFinancialTips = async () => {
+  const fetchFinancialTips = useCallback(async () => {
     try {
-      console.log("Fetching financial tips...");
-      const response = await fetch('http://localhost:5001/api/tips', {
-        headers: getAuthHeaders()
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch tips: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log("Financial tips loaded:", data.tips?.length || 0);
-      console.log("Sample tip:", data.tips?.[0] || "No tips available");
-      
-      if (data.tips && data.tips.length > 0) {
-        setFinancialTips(data.tips);
-        return data.tips;
-      } else {
-        throw new Error("No tips returned from API");
-      }
-    } catch (error) {
-      console.error('Error fetching financial tips:', error);
-      throw error;
+      const response = await makeAuthenticatedRequest('/api/portfolio/tips', 'GET');
+      setFinancialTips(response.tips);
+    } catch (err) {
+      setError('Failed to fetch financial tips');
     }
-  };
+  }, [makeAuthenticatedRequest]);
   
   // Get current financial tip
   const getCurrentTip = () => {
@@ -223,6 +200,30 @@ export const PortfolioProvider = ({ children }) => {
     }
   };
   
+  const fetchPortfolioHistory = useCallback(async () => {
+    try {
+      const response = await makeAuthenticatedRequest('/api/portfolio/history', 'GET');
+      setPortfolioHistory(response.history);
+    } catch (err) {
+      setError('Failed to fetch portfolio history');
+    }
+  }, [makeAuthenticatedRequest]);
+  
+  const updatePortfolio = async (securities) => {
+    try {
+      const response = await makeAuthenticatedRequest(
+        '/api/portfolio/update',
+        'POST',
+        { securities }
+      );
+      setPortfolioHistory(response.history);
+      return { success: true };
+    } catch (err) {
+      setError('Failed to update portfolio');
+      return { success: false, error: err.message };
+    }
+  };
+  
   const value = {
     currentStep,
     answers,
@@ -236,7 +237,9 @@ export const PortfolioProvider = ({ children }) => {
     nextStep,
     prevStep,
     resetQuestionnaire,
-    submitQuestionnaire
+    submitQuestionnaire,
+    portfolioHistory,
+    updatePortfolio
   };
   
   return (

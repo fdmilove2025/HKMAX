@@ -185,4 +185,49 @@ describe('ProfilePage', () => {
       expect(screen.getByText('2FA disabled successfully!')).toBeInTheDocument();
     });
   });
+
+  test('updates profile successfully', async () => {
+    const { getByLabelText, getByText } = render(<ProfilePage />);
+    
+    // Wait for the form to be ready
+    await waitFor(() => {
+      expect(getByLabelText('Username')).toBeInTheDocument();
+    });
+
+    // Fill in the form
+    await userEvent.type(getByLabelText('Username'), 'newusername');
+    await userEvent.type(getByLabelText('Email'), 'newemail@example.com');
+    await userEvent.type(getByLabelText('Current Password'), 'password123');
+    await userEvent.type(getByLabelText('New Password'), 'newpassword123');
+
+    // Submit the form
+    await userEvent.click(getByText('Update Profile'));
+
+    // Wait for success message
+    await waitFor(() => {
+      expect(getByText('Profile updated successfully')).toBeInTheDocument();
+    });
+  });
+
+  test('handles profile update error', async () => {
+    const { getByLabelText, getByText } = render(<ProfilePage />);
+    
+    // Wait for the form to be ready
+    await waitFor(() => {
+      expect(getByLabelText('Username')).toBeInTheDocument();
+    });
+
+    // Fill in the form with invalid data
+    await userEvent.type(getByLabelText('Username'), 'newusername');
+    await userEvent.type(getByLabelText('Email'), 'invalid-email');
+    await userEvent.type(getByLabelText('Current Password'), 'wrongpassword');
+
+    // Submit the form
+    await userEvent.click(getByText('Update Profile'));
+
+    // Wait for error message
+    await waitFor(() => {
+      expect(getByText('Invalid email format')).toBeInTheDocument();
+    });
+  });
 }); 

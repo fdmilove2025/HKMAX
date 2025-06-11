@@ -9,7 +9,6 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [age, setAge] = useState("");
-  const [faceid, setFaceid] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showFacialModal, setShowFacialModal] = useState(false);
@@ -21,32 +20,25 @@ const Register = () => {
     e.preventDefault();
     setError("");
 
-    // Validate passwords match
     if (password !== confirmPassword) {
       return setError("Passwords do not match");
     }
 
-    // Validate password length
     if (password.length < 8) {
       return setError("Password must be at least 8 characters");
     }
 
-    // Validate age
     const ageNum = parseInt(age);
     if (isNaN(ageNum) || ageNum < 18) {
-      return setError(
-        "You must be at least 18 years old to use this application"
-      );
+      return setError("You must be at least 18 years old to use this application");
     }
 
     setLoading(true);
 
     try {
-      // Show facial recognition modal first
       setShowFacialModal(true);
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -73,7 +65,6 @@ const Register = () => {
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
-      console.error(err);
     } finally {
       setLoading(false);
     }

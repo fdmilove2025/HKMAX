@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
@@ -166,7 +166,7 @@ const DisclaimerModal = ({ isOpen, onClose }) => {
 };
 
 const HomePage = () => {
-  const { resetQuestionnaire, currentStep } = usePortfolio();
+  const { resetQuestionnaire, currentStep, setCurrentStep, setAnswers } = usePortfolio();
   const { scrollY } = useScroll();
   const bannerScale = useTransform(scrollY, [0, 300], [1, 1.1]);
   const bannerOpacity = useTransform(scrollY, [0, 300], [1, 0.3]);
@@ -174,17 +174,15 @@ const HomePage = () => {
   const isHeroInView = useInView(heroRef, { once: true });
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   
-  // Reset the questionnaire when starting from the homepage
-  React.useEffect(() => {
-    // Only reset if we're not already at the beginning
-    if (currentStep !== 0) {
+  useEffect(() => {
+    if (currentStep === 0) {
       resetQuestionnaire();
     }
-  }, []); // Empty dependency array since we only want to run this once on mount
+  }, [currentStep, resetQuestionnaire]);
   
   // Check if user has seen the disclaimer before
   useEffect(() => {
-    const hasSeenDisclaimer = localStorage.getItem('disclaimerAcknowledged');
+    const hasSeenDisclaimer = localStorage.getItem('hasSeenDisclaimer');
     if (!hasSeenDisclaimer) {
       setShowDisclaimer(true);
     }
@@ -192,7 +190,7 @@ const HomePage = () => {
   
   // Handle disclaimer close
   const handleDisclaimerClose = () => {
-    localStorage.setItem('disclaimerAcknowledged', 'true');
+    localStorage.setItem('hasSeenDisclaimer', 'true');
     setShowDisclaimer(false);
   };
   

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
 
 // API base URL - adjust if needed
 const API_URL = "http://localhost:5001";
@@ -124,50 +124,49 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Check if the user is logged in on page load
-    const checkUser = async () => {
-      const token = getToken();
-      const user = getCurrentUser();
-      
-      if (!token || !user) {
-        setLoading(false);
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (token) {
+      setAuthToken(token);
+      fetchCurrentUser();
+    }
+  }, [fetchCurrentUser]);
 
-      try {
-        const data = await makeAuthenticatedRequest("/api/auth/user");
-        updateCurrentUser(data.user);
-      } catch (err) {
-        console.error("Failed to retrieve user:", err);
-        removeToken();
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const response = await makeAuthenticatedRequest('/api/auth/user', 'GET');
+      setCurrentUser(response.user);
+    } catch (err) {
+      removeToken();
+    }
+  }, [makeAuthenticatedRequest]);
 
-    checkUser();
-  }, []);
-
-  const register = async (email, username, password, age, faceid) => {
+  const register = async (email, username, password, age, faceid = false) => {
     setError("");
     try {
-      const data = await makeAuthenticatedRequest(
-        "/api/auth/register",
-        "POST",
-        {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email,
           username,
           password,
           age,
-          faceid,
-        }
-      );
+          faceid
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
 
       setAuthToken(data.access_token);
-      updateCurrentUser(data.user);
-      return { success: true, data };
+      setCurrentUser(data.user);
+      return { success: true };
     } catch (err) {
-      console.error("Registration error:", err);
       setError(err.message);
       return { success: false, error: err.message };
     }
@@ -176,42 +175,33 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setError("");
     try {
-      console.log("Attempting login for:", email);
       const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
-      console.log("Login response:", data);
 
       if (!response.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.error || 'Login failed');
       }
 
-      // Check for 2FA requirement
-      if (data['2fa_required'] || data.twofa_required) {
-        console.log("2FA required, returning 2FA info");
+      if (data.twofa_required) {
         return {
           success: false,
           twofa_required: true,
           temp_access_token: data.temp_access_token,
-          message: data.message || "Please enter your 2FA code",
+          message: data.message
         };
       }
 
-      // If we get here, login was successful without 2FA
-      console.log("Login successful, setting token and user data");
       setAuthToken(data.access_token);
       setCurrentUser(data.user);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      
       return { success: true };
     } catch (err) {
-      console.error("Login error:", err);
       setError(err.message);
       return { success: false, error: err.message };
     }

@@ -18,7 +18,6 @@ const Login = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Check if there's a message from the redirect
     if (location.state?.message) {
       setMessage(location.state.message);
     }
@@ -30,7 +29,6 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // If 2FA input is shown, verify 2FA
       if (show2FAInput) {
         const result = await verify2FA(twoFactorToken, tempAuthToken);
         
@@ -43,18 +41,14 @@ const Login = () => {
         }
       }
 
-      // Regular login attempt
       const result = await login(email, password);
-      console.log("Login result:", result);
 
       if (result.success) {
-        // Wait a moment to ensure state is updated
         setTimeout(() => {
           navigate('/', { replace: true });
           window.scrollTo(0, 0);
         }, 100);
       } else if (result.twofa_required) {
-        console.log("2FA required, showing 2FA input");
         setTempAuthToken(result.temp_access_token);
         setShow2FAInput(true);
         setMessage(result.message || "Please enter your 2FA code");
@@ -63,7 +57,6 @@ const Login = () => {
         setError(result.error || "Invalid email or password");
       }
     } catch (err) {
-      console.error("Login error:", err);
       setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -75,7 +68,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-20">
+    <div className="min-h-screen flex flex-col justify-center py-8 sm:px-6 lg:px-8 pt-12">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">
           Sign in to your account
@@ -91,7 +84,7 @@ const Login = () => {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="glass-panel bg-white/80 dark:bg-dark-100/70 py-8 px-4 shadow sm:rounded-lg sm:px-10 backdrop-blur-md border border-gray-200 dark:border-dark-300/50 transition-all duration-300">
           {error && (
             <div
