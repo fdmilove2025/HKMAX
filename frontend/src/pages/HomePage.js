@@ -116,7 +116,6 @@ const DisclaimerModal = ({ isOpen, onClose }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
       />
       
       <motion.div 
@@ -129,17 +128,9 @@ const DisclaimerModal = ({ isOpen, onClose }) => {
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-xl font-display font-bold gradient-text">Financial Disclaimer</h2>
-            <button 
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
           </div>
           
-          <div className="text-gray-700 dark:text-gray-300 text-sm space-y-3">
+          <div className="space-y-4 text-gray-600 dark:text-gray-300">
             <p><span className="font-semibold">Investment Risk:</span> All investment strategies have the potential for profit or loss. I-Buddy makes no representations or warranties regarding the accuracy or completeness of information provided.</p>
             
             <p><span className="font-semibold">Not Financial Advice:</span> The information provided on this site is for informational purposes only. I-Buddy is not a registered investment, legal, or tax advisor or broker/dealer, and this platform does not provide individualized investment advice.</p>

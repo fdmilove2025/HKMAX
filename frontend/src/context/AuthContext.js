@@ -123,14 +123,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setAuthToken(token);
-      fetchCurrentUser();
-    }
-  }, [fetchCurrentUser]);
-
+  // Function to fetch current user data
   const fetchCurrentUser = useCallback(async () => {
     try {
       const response = await makeAuthenticatedRequest('/api/auth/user', 'GET');
@@ -138,7 +131,16 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       removeToken();
     }
-  }, [makeAuthenticatedRequest]);
+  }, [makeAuthenticatedRequest, removeToken]);
+
+  // Effect to check token and fetch user data on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setAuthToken(token);
+      fetchCurrentUser();
+    }
+  }, [fetchCurrentUser, setAuthToken]);
 
   const register = async (email, username, password, age, faceid = false) => {
     setError("");
