@@ -19,7 +19,7 @@ const FacialRegistration = () => {
   // Redirect if not authenticated
   useEffect(() => {
     if (!currentUser) {
-      navigate('/login', { state: { from: '/facial-registration' } });
+      navigate("/login", { state: { from: "/facial-registration" } });
     }
   }, [currentUser, navigate]);
 
@@ -129,6 +129,7 @@ const FacialRegistration = () => {
       // Send image to backend for registration
       const result = await registerFace(imageData);
       if (result.success) {
+        stopCamera(); // Stop camera after successful registration
         setStep(4); // Move to success step
         setTimeout(() => {
           navigate("/");

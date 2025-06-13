@@ -129,6 +129,7 @@ const FacialLogin = () => {
       // Send image to backend for verification
       const result = await facialLogin(email, imageData);
       if (result.success) {
+        stopCamera(); // Stop camera after successful login
         setStep(4); // Move to success step
         setTimeout(() => {
           navigate("/");
