@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
@@ -116,7 +116,6 @@ const DisclaimerModal = ({ isOpen, onClose }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
       />
       
       <motion.div 
@@ -129,26 +128,18 @@ const DisclaimerModal = ({ isOpen, onClose }) => {
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-xl font-display font-bold gradient-text">Financial Disclaimer</h2>
-            <button 
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
           </div>
           
-          <div className="text-gray-700 dark:text-gray-300 text-sm space-y-3">
-            <p><span className="font-semibold">Investment Risk:</span> All investment strategies have the potential for profit or loss. InvestBuddy makes no representations or warranties regarding the accuracy or completeness of information provided.</p>
+          <div className="space-y-4 text-gray-600 dark:text-gray-300">
+            <p><span className="font-semibold">Investment Risk:</span> All investment strategies have the potential for profit or loss. I-Buddy makes no representations or warranties regarding the accuracy or completeness of information provided.</p>
             
-            <p><span className="font-semibold">Not Financial Advice:</span> The content on this site is for informational purposes only. InvestBuddy is not a registered investment, legal, or tax advisor or broker/dealer, and this platform does not provide individualized investment advice.</p>
+            <p><span className="font-semibold">Not Financial Advice:</span> The information provided on this site is for informational purposes only. I-Buddy is not a registered investment, legal, or tax advisor or broker/dealer, and this platform does not provide individualized investment advice.</p>
             
             <p><span className="font-semibold">AI Limitations:</span> While our AI-powered tools use sophisticated algorithms, they are not infallible. Recommendations should be evaluated in the context of your personal financial situation and goals.</p>
             
             <p><span className="font-semibold">Past Performance:</span> Past performance is not indicative of future results. Actual investment results will fluctuate with market conditions.</p>
             
-            <p className="mt-4">By using InvestBuddy, you acknowledge that you have read this disclaimer and understand the inherent risks associated with investing.</p>
+            <p className="mt-4">By using I-Buddy, you acknowledge that you have read this disclaimer and understand the inherent risks associated with investing.</p>
           </div>
           
           <div className="mt-6 flex justify-end">
@@ -166,7 +157,7 @@ const DisclaimerModal = ({ isOpen, onClose }) => {
 };
 
 const HomePage = () => {
-  const { resetQuestionnaire } = usePortfolio();
+  const { resetQuestionnaire, currentStep, setCurrentStep, setAnswers } = usePortfolio();
   const { scrollY } = useScroll();
   const bannerScale = useTransform(scrollY, [0, 300], [1, 1.1]);
   const bannerOpacity = useTransform(scrollY, [0, 300], [1, 0.3]);
@@ -174,14 +165,15 @@ const HomePage = () => {
   const isHeroInView = useInView(heroRef, { once: true });
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   
-  // Reset the questionnaire when starting from the homepage
-  React.useEffect(() => {
-    resetQuestionnaire();
-  }, [resetQuestionnaire]);
+  useEffect(() => {
+    if (currentStep === 0) {
+      resetQuestionnaire();
+    }
+  }, [currentStep, resetQuestionnaire]);
   
   // Check if user has seen the disclaimer before
   useEffect(() => {
-    const hasSeenDisclaimer = localStorage.getItem('disclaimerAcknowledged');
+    const hasSeenDisclaimer = localStorage.getItem('hasSeenDisclaimer');
     if (!hasSeenDisclaimer) {
       setShowDisclaimer(true);
     }
@@ -189,7 +181,7 @@ const HomePage = () => {
   
   // Handle disclaimer close
   const handleDisclaimerClose = () => {
-    localStorage.setItem('disclaimerAcknowledged', 'true');
+    localStorage.setItem('hasSeenDisclaimer', 'true');
     setShowDisclaimer(false);
   };
   

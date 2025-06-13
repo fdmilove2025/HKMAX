@@ -4,16 +4,16 @@ const AboutPage = () => {
   return (
     <div className="space-y-10">
       <section className="text-center">
-        <h1 className="gradient-text mb-6">About InvestBuddy</h1>
-        <p className="text-xl max-w-3xl mx-auto text-gray-700 dark:text-gray-300">
-          Your AI-powered investment companion for building smarter portfolios
+        <h1 className="gradient-text mb-6">About I-Buddy</h1>
+        <p className="text-lg text-gray-700 dark:text-gray-300 mb-8">
+          I-Buddy was created to democratize investment advice and portfolio optimization.
         </p>
       </section>
 
       <section className="glass-panel rounded-xl p-8 max-w-4xl mx-auto">
         <h2 className="text-2xl mb-4 gradient-text">Our Mission</h2>
         <p className="mb-6 text-gray-700 dark:text-gray-300">
-          InvestBuddy was created to democratize investment advice and portfolio optimization. 
+          I-Buddy was created to democratize investment advice and portfolio optimization. 
           We believe everyone deserves access to sophisticated investment tools that were previously 
           only available to professional investors.
         </p>
@@ -70,7 +70,7 @@ const AboutPage = () => {
           <div className="flex items-center space-x-4">
             <div className="w-20 h-20 rounded-full bg-gradient-to-r from-futuristic-blue to-futuristic-cyan"></div>
             <div>
-              <h3 className="text-xl font-medium">Karthik Asokan</h3>
+              <h3 className="text-xl font-medium">John Tsoi Tsui Kun</h3>
               <p className="text-futuristic-blue dark:text-neon-blue">CEO & Financial Analyst</p>
             </div>
           </div>
@@ -78,7 +78,7 @@ const AboutPage = () => {
           <div className="flex items-center space-x-4">
             <div className="w-20 h-20 rounded-full bg-gradient-to-r from-futuristic-blue to-futuristic-cyan"></div>
             <div>
-              <h3 className="text-xl font-medium">Kenny Tong</h3>
+              <h3 className="text-xl font-medium">Code Baggers</h3>
               <p className="text-futuristic-blue dark:text-neon-blue">Lead Developer</p>
             </div>
           </div>
@@ -87,8 +87,8 @@ const AboutPage = () => {
 
       <section className="text-center max-w-4xl mx-auto">
         <h2 className="text-2xl mb-6 gradient-text">Start Your Investment Journey Today</h2>
-        <p className="mb-8 text-gray-700 dark:text-gray-300">
-          Join thousands of users who have already optimized their investment portfolios with InvestBuddy.
+        <p className="text-lg text-gray-700 dark:text-gray-300 mb-8">
+          Join thousands of users who have already optimized their investment portfolios with I-Buddy.
         </p>
         
         <button className="btn-primary">

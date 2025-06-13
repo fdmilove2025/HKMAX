@@ -3,24 +3,21 @@ import { usePortfolio } from '../context/PortfolioContext';
 import { motion } from 'framer-motion';
 
 const LoadingScreen = () => {
-  const { financialTips } = usePortfolio();
+  const { getCurrentTip } = usePortfolio();
   const [tipIndex, setTipIndex] = useState(0);
+  const [currentTip, setCurrentTip] = useState("Analyzing your investment profile...");
   
-  // Simple tip rotation every 7 seconds
+  // Update tip every 15 seconds instead of 7
   useEffect(() => {
-    if (!financialTips || financialTips.length <= 1) return;
-    
     const interval = setInterval(() => {
-      setTipIndex(prevIndex => (prevIndex + 1) % financialTips.length);
-    }, 7000);
+      setTipIndex(prevIndex => prevIndex + 1);
+      setCurrentTip(getCurrentTip());
+    }, 15000);
     
-    return () => clearInterval(interval);
-  }, [financialTips]);
-  
-  // Current tip to display
-  const currentTip = financialTips && financialTips.length > 0 
-    ? financialTips[tipIndex] 
-    : "Analyzing your investment profile...";
+    return () => {
+      clearInterval(interval);
+    };
+  }, [getCurrentTip]);
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 dark:bg-dark-100/95 backdrop-blur-md">
@@ -68,20 +65,18 @@ const LoadingScreen = () => {
           </div>
           
           {/* Tip progress indicators */}
-          {financialTips && financialTips.length > 1 && (
-            <div className="flex justify-center space-x-1 mb-6">
-              {financialTips.map((_, index) => (
-                <div 
-                  key={index}
-                  className={`w-2 h-2 rounded-full ${
-                    index === tipIndex 
-                      ? 'bg-futuristic-blue dark:bg-neon-blue' 
-                      : 'bg-gray-300 dark:bg-gray-600'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex justify-center space-x-1 mb-6">
+            {[...Array(3)].map((_, index) => (
+              <div 
+                key={index}
+                className={`w-2 h-2 rounded-full ${
+                  index === tipIndex % 3
+                    ? 'bg-futuristic-blue dark:bg-neon-blue' 
+                    : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              />
+            ))}
+          </div>
           
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center w-full">
             This may take a moment as our AI works on your personalized insights

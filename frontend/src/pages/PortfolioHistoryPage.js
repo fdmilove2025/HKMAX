@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import LoadingScreen from '../components/LoadingScreen';
+import { useAuth } from '../context/AuthContext';
 
 const PortfolioHistoryPage = () => {
   const navigate = useNavigate();
+  const { getAuthHeaders } = useAuth();
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
@@ -20,10 +22,7 @@ const PortfolioHistoryPage = () => {
     try {
       setLoading(true);
       const response = await fetch('http://localhost:5001/api/portfolio/history', {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: getAuthHeaders()
       });
       
       if (!response.ok) {

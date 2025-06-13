@@ -1,18 +1,25 @@
-from flask import Blueprint, request, jsonify
-from flask_login import login_required, current_user
+from flask import Blueprint, request, jsonify, make_response
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.portfolio_analyzer import analyze_portfolio_combined, recommend_securities, get_financial_tips
-from app.models import db, Portfolio
+from app.models import db, Portfolio, User
 from app.api_service import get_stock_list, filter_stocks, get_symbols_only, analyze_stock_fit, get_stock_metrics
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 @api_bp.route('/assess', methods=['POST'])
-@login_required
+@jwt_required()
 def assess_portfolio():
     """
     Endpoint to assess risk profile and generate portfolio recommendations
     based on questionnaire answers. Saves results to database.
     """
+    # Get current user
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
     # Get data from request
     data = request.json
     
@@ -31,7 +38,7 @@ def assess_portfolio():
         return jsonify({'error': f'Missing required fields: {", ".join(missing_fields)}'}), 400
     
     try:
-        print(f"Starting portfolio assessment for user {current_user.id}")
+        print(f"Starting portfolio assessment for user {user.id}")
         print(f"User data: {data}")
         
         # Use the combined function to reduce LLM calls
@@ -47,7 +54,7 @@ def assess_portfolio():
         # Create new portfolio record
         print("Creating portfolio record...")
         portfolio = Portfolio(
-            user_id=current_user.id,
+            user_id=user.id,
             investment_goal=data['investmentGoal'],
             time_horizon=int(data['timeHorizon']),
             risk_reaction=data['riskReaction'],
@@ -82,13 +89,14 @@ def assess_portfolio():
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/portfolio/history', methods=['GET'])
-@login_required
+@jwt_required()
 def get_portfolio_history():
     """
     Get the user's portfolio assessment history
     """
     try:
-        portfolios = Portfolio.query.filter_by(user_id=current_user.id).order_by(Portfolio.created_at.desc()).all()
+        current_user_id = get_jwt_identity()
+        portfolios = Portfolio.query.filter_by(user_id=current_user_id).order_by(Portfolio.created_at.desc()).all()
         
         return jsonify({
             'portfolios': [{
@@ -162,7 +170,7 @@ def get_symbols():
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/stock/fit/<ticker>', methods=['GET'])
-@login_required
+@jwt_required()
 def analyze_stock_portfolio_fit(ticker):
     """
     Endpoint to analyze whether a stock is a good fit for the user's portfolio
@@ -175,13 +183,15 @@ def analyze_stock_portfolio_fit(ticker):
     - JSON with stock fit analysis including recommendation, explanation, and metrics
     """
     try:
+        current_user_id = get_jwt_identity()
+        
         # Validate ticker - ensure it's uppercase for consistency with the FMP API
         ticker = ticker.strip().upper()
         if not ticker or len(ticker) > 10:
             return jsonify({"error": "Invalid ticker symbol"}), 400
             
         # Call the analyze_stock_fit function with the ticker and user_id
-        analysis = analyze_stock_fit(ticker, current_user.id)
+        analysis = analyze_stock_fit(ticker, current_user_id)
         
         if analysis is None:
             return jsonify({"error": f"Could not analyze {ticker}. Please try again later."}), 500

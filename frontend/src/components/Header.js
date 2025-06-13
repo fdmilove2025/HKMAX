@@ -29,7 +29,7 @@ const Header = () => {
                 className="text-blue-600 dark:text-blue-400 text-xl font-bold"
                 onClick={handleLogoClick}
               >
-                InvestBuddy
+                I-Buddy
               </Link>
             </div>
             <div className="hidden md:ml-6 md:flex md:space-x-4">
@@ -42,11 +42,14 @@ const Header = () => {
               <Link to="/questionnaire" className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                 Build Portfolio
               </Link>
-              <Link to="/portfolio" className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+              <Link to="/portfolio/history" className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                 Your Portfolio
               </Link>
               <Link to="/about" className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                 About
+              </Link>
+              <Link to="/profile" className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                Profile
               </Link>
             </div>
           </div>
