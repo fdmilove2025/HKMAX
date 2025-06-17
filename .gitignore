@@ -2,6 +2,8 @@
 /frontend/.DS_Store
 /frontend/src/.DS_Store
 /backend/app/__pycache__
+/backend/__pycache__
+/backend/tests/__pycache__
 /backend/venv
 backend/.DS_Store
 backend/.env
