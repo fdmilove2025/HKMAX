@@ -88,7 +88,7 @@ jobs:
           }
 
       - name: Run tests
-        run: npm test -- --passWithNoTests
+        run: pytest
 
       - name: Build
         env:
