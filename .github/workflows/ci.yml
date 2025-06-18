@@ -57,12 +57,6 @@ jobs:
           OLLAMA_HOST: mock
           OLLAMA_MODEL: mock
           PYTHONPATH: ${{ github.workspace }}/backend
-          SECRET_KEY: test-secret-key
-          JWT_SECRET_KEY: test-secret-key
-          JWT_ACCESS_TOKEN_EXPIRES: 3600
-          JWT_TOKEN_LOCATION: '["headers"]'
-          JWT_HEADER_NAME: Authorization
-          JWT_HEADER_TYPE: Bearer
         run: |
           pytest tests/ -v --cov=app
 
