@@ -1,13 +1,10 @@
 name: CI
 
 on:
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
   push:
-    branches: [main, '**']
+    branches: [main, "**"]
   pull_request:
-    branches: [main, '**']
+    branches: [main, "**"]
 
 jobs:
   backend-tests:
@@ -62,7 +59,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/backend
         run: |
           cd backend/
-          pytest tests/ 
+          pytest tests/
 
       - name: Upload test coverage
         uses: actions/upload-artifact@v4
