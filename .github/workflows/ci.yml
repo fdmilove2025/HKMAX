@@ -5,27 +5,9 @@ on:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
   push:
-    branches: [main]
+    branches: [main, '**']
   pull_request:
-    branches: [main]
-=======
-  pull_request:
-    branches: [ main, '**' ]
-  push:
-    branches: [ main, '**' ]
->>>>>>> Stashed changes
-=======
-  pull_request:
-    branches: [ main, '**' ]
-  push:
-    branches: [ main, '**' ]
->>>>>>> Stashed changes
-=======
-  pull_request:
-    branches: [ main, '**' ]
-  push:
-    branches: [ main, '**' ]
->>>>>>> Stashed changes
+    branches: [main, '**']
 
 jobs:
   backend-tests:
@@ -80,7 +62,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/backend
         run: |
           cd backend/
-          pytest tests/ -v --cov=app
+          pytest tests/ -v --cov=app --cov-report=html
 
       - name: Upload test coverage
         uses: actions/upload-artifact@v4
