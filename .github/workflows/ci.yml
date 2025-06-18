@@ -3,10 +3,17 @@ name: CI
 on:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   push:
     branches: [main]
   pull_request:
     branches: [main]
+=======
+  pull_request:
+    branches: [ main, '**' ]
+  push:
+    branches: [ main, '**' ]
+>>>>>>> Stashed changes
 =======
   pull_request:
     branches: [ main, '**' ]
