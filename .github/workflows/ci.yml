@@ -58,8 +58,7 @@ jobs:
           OLLAMA_MODEL: mock
           PYTHONPATH: ${{ github.workspace }}/backend
         run: |
-          cd backend/
-          pytest tests/
+          pytest tests/ -v --cov=app
 
       - name: Upload test coverage
         uses: actions/upload-artifact@v4
