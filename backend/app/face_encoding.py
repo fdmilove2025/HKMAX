@@ -6,7 +6,7 @@ from PIL import Image
 
 def faceEncoding(img_data):
     """
-    Convert base64 image data to face encoding
+    Convert bas64 image data to face encoding
     Returns: face encoding array or None if no face found
     """
     try:
