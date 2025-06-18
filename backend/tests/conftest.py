@@ -1,7 +1,7 @@
 import pytest
 from app import create_app
 from app.models import db, User
-from app.auth import create_access_token
+from flask_jwt_extended import create_access_token
 
 @pytest.fixture(scope='session')
 def app():
@@ -34,9 +34,10 @@ def test_user(app, _db):
     return user
 
 @pytest.fixture(scope='function')
-def auth_headers(test_user):
-    token = create_access_token(test_user.id)
-    return {'Authorization': f'Bearer {token}'}
+def auth_headers(app, test_user):
+    with app.app_context():
+        token = create_access_token(identity=test_user.id)
+        return {'Authorization': f'Bearer {token}'}
 
 @pytest.fixture(scope='function')
 def test_user_with_2fa(app, _db):
@@ -53,6 +54,7 @@ def test_user_with_2fa(app, _db):
     return user
 
 @pytest.fixture(scope='function')
-def auth_headers_with_2fa(test_user_with_2fa):
-    token = create_access_token(test_user_with_2fa.id)
-    return {'Authorization': f'Bearer {token}'} 
+def auth_headers_with_2fa(app, test_user_with_2fa):
+    with app.app_context():
+        token = create_access_token(identity=test_user_with_2fa.id)
+        return {'Authorization': f'Bearer {token}'} 
