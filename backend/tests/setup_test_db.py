@@ -35,7 +35,12 @@ def setup_test_db():
                     username VARCHAR(80) UNIQUE NOT NULL,
                     email VARCHAR(120) UNIQUE NOT NULL,
                     password_hash VARCHAR(128) NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    age INT NOT NULL,
+                    has_faceid BOOLEAN DEFAULT FALSE,
+                    two_factor_secret VARCHAR(255),
+                    is_two_factor_enabled BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 )
             """)
             
