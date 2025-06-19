@@ -19,12 +19,23 @@ def _db(app):
         db.session.remove()
         # Use SQLAlchemy 2.0 syntax for executing raw SQL
         with db.engine.connect() as conn:
-            conn.execute(db.text("PRAGMA foreign_keys=OFF"))
-            conn.commit()
+            # Check if we're using SQLite or MySQL and use appropriate commands
+            if 'sqlite' in str(db.engine.url).lower():
+                conn.execute(db.text("PRAGMA foreign_keys=OFF"))
+                conn.commit()
+            else:
+                # MySQL
+                conn.execute(db.text("SET FOREIGN_KEY_CHECKS = 0"))
+                conn.commit()
         db.drop_all()
         with db.engine.connect() as conn:
-            conn.execute(db.text("PRAGMA foreign_keys=ON"))
-            conn.commit()
+            if 'sqlite' in str(db.engine.url).lower():
+                conn.execute(db.text("PRAGMA foreign_keys=ON"))
+                conn.commit()
+            else:
+                # MySQL
+                conn.execute(db.text("SET FOREIGN_KEY_CHECKS = 1"))
+                conn.commit()
 
 
 @pytest.fixture(scope="function")
