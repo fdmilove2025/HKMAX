@@ -24,6 +24,12 @@ def setup_test_db():
             cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
             cursor.execute(f"USE {db_name}")
 
+            # Drop holdings table if it exists (to avoid foreign key constraint issues)
+            cursor.execute("SHOW TABLES LIKE 'holdings'")
+            if cursor.fetchone():
+                print("Dropping existing holdings table...")
+                cursor.execute("DROP TABLE holdings")
+
             # Create users table with complete schema
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
@@ -72,21 +78,6 @@ def setup_test_db():
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """)
-
-            # Create holdings table
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS holdings (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    portfolio_id INT NOT NULL,
-                    ticker VARCHAR(10) NOT NULL,
-                    shares DECIMAL(10,2) NOT NULL,
-                    average_price DECIMAL(10,2) NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE
-                )
-            """
-            )
 
         conn.commit()
         print(f"Test database '{db_name}' setup completed successfully")

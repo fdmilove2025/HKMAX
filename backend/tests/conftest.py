@@ -1,4 +1,5 @@
 import pytest
+import uuid
 from app import create_app
 from app.models import db, User
 from flask_jwt_extended import create_access_token
@@ -16,7 +17,14 @@ def _db(app):
         db.create_all()
         yield db
         db.session.remove()
+        # Use SQLAlchemy 2.0 syntax for executing raw SQL
+        with db.engine.connect() as conn:
+            conn.execute(db.text("PRAGMA foreign_keys=OFF"))
+            conn.commit()
         db.drop_all()
+        with db.engine.connect() as conn:
+            conn.execute(db.text("PRAGMA foreign_keys=ON"))
+            conn.commit()
 
 
 @pytest.fixture(scope="function")
@@ -27,7 +35,8 @@ def client(app, _db):
 
 @pytest.fixture(scope="function")
 def test_user(app, _db):
-    user = User(username="testuser", email="test@example.com", age=25)
+    unique_id = str(uuid.uuid4())[:8]
+    user = User(username=f"testuser_{unique_id}", email=f"test_{unique_id}@example.com", age=25)
     user.set_password("password123")
     _db.session.add(user)
     _db.session.commit()
@@ -43,9 +52,10 @@ def auth_headers(app, client, test_user):
 
 @pytest.fixture(scope="function")
 def test_user_with_2fa(app, _db):
+    unique_id = str(uuid.uuid4())[:8]
     user = User(
-        username="testuser2fa",
-        email="test2fa@example.com",
+        username=f"testuser2fa_{unique_id}",
+        email=f"test2fa_{unique_id}@example.com",
         age=25,
         is_two_factor_enabled=True,
         two_factor_secret="test_secret",

@@ -17,16 +17,16 @@ def test_register(client):
 
 
 def test_login(client, test_user):
-    response = client.post("/api/auth/login", json={"email": "test@example.com", "password": "password123"})
+    response = client.post("/api/auth/login", json={"email": test_user.email, "password": "password123"})
     assert response.status_code == 200
     data = response.get_json()
     assert "access_token" in data
     assert "user" in data
-    assert data["user"]["username"] == "testuser"
+    assert data["user"]["username"] == test_user.username
 
 
 def test_login_wrong_password(client, test_user):
-    response = client.post("/api/auth/login", json={"email": "test@example.com", "password": "wrongpassword"})
+    response = client.post("/api/auth/login", json={"email": test_user.email, "password": "wrongpassword"})
     assert response.status_code == 401
     data = response.get_json()
     assert "error" in data
@@ -37,8 +37,8 @@ def test_get_user(client, auth_headers, test_user):
     assert response.status_code == 200
     data = response.get_json()
     assert "user" in data
-    assert data["user"]["username"] == "testuser"
-    assert data["user"]["email"] == "test@example.com"
+    assert data["user"]["username"] == test_user.username
+    assert data["user"]["email"] == test_user.email
 
 
 def test_get_user_unauthorized(client):
