@@ -18,7 +18,7 @@ MYSQL_DB = os.getenv("MYSQL_DB", "investbuddy")
 
 
 def create_mysql_database():
-    """Create the MySQL database if it doesn't exist"""
+    """Creat the MySQL database if it doesn't exist"""
     try:
         # Parse MySQL connection details from DATABASE_URI
         # Example format: mysql+pymysql://user:password@host:port/database
