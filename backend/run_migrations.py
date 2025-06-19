@@ -6,7 +6,7 @@ from app.models import db
 app = create_app()
 migrate = Migrate(app, db)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with app.app_context():
         # Run migrations
-        migrate.upgrade() 
+        migrate.upgrade()

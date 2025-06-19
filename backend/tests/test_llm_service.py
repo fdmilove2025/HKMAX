@@ -1,22 +1,22 @@
 import sys
 import os
 import unittest
-from unittest.mock import patch
 import requests
-
-# Add the parent directory to the sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from unittest.mock import patch
 
 from app.llm_service import generate_response, clean_thinking
+
+
+# Add the parent directory to the sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 class TestLLMService(unittest.TestCase):
     def setUp(self):
         self.test_prompt = "Test prompt"
-        self.test_response = {
-            "response": "Test response"
-        }
+        self.test_response = {"response": "Test response"}
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_generate_response_success(self, mock_post):
         # Mock successful API response
         mock_post.return_value.json.return_value = self.test_response
@@ -25,7 +25,7 @@ class TestLLMService(unittest.TestCase):
         result = generate_response(self.test_prompt)
         self.assertEqual(result, "Test response")
 
-    @patch('requests.post')
+    @patch("requests.post")
     def test_generate_response_error(self, mock_post):
         # Mock API error
         mock_post.side_effect = requests.exceptions.RequestException("API Error")
@@ -41,16 +41,17 @@ class TestLLMService(unittest.TestCase):
 
     def test_clean_thinking_with_tags(self):
         # Test with thinking tags
-        test_text = 'Before <think>thinking</think> After'
+        test_text = "Before <think>thinking</think> After"
         result = clean_thinking(test_text)
-        self.assertEqual(result, 'Before  After')
+        self.assertEqual(result, "Before  After")
 
     def test_clean_thinking_with_thought_markers(self):
         # Test with thought markers
-        test_text = 'Before Thinking: thoughts After'
+        test_text = "Before Thinking: thoughts After"
         result = clean_thinking(test_text)
         # Normalize whitespace for comparison
-        self.assertEqual(' '.join(result.split()), 'Before thoughts After')
+        self.assertEqual(" ".join(result.split()), "Before thoughts After")
 
-if __name__ == '__main__':
-    unittest.main() 
+
+if __name__ == "__main__":
+    unittest.main()
