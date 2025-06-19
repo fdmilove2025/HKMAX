@@ -11,8 +11,19 @@ def create_app(config=None):
     app = Flask(__name__)
     
     if config == 'testing':
-        # Use SQLite for testing
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        # Check if MySQL environment variables are set (for CI)
+        if os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD'):
+            # Use MySQL for testing in CI environment
+            db_host = os.getenv('DB_HOST', 'localhost')
+            db_port = os.getenv('DB_PORT', '3306')
+            db_user = os.getenv('DB_USER', 'root')
+            db_password = os.getenv('DB_PASSWORD', 'root')
+            db_name = os.getenv('DB_NAME', 'investbuddy_test')
+            app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+        else:
+            # Use SQLite for local testing
+            app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        
         app.config['TESTING'] = True
         app.config['SECRET_KEY'] = 'test-secret-key'
         app.config['JWT_SECRET_KEY'] = 'test-secret-key'
