@@ -1,20 +1,27 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AuthProvider, useAuth } from "../AuthContext";
 
 // Test component that uses the auth context
 const TestComponent = () => {
   const { currentUser, login, logout, error, register } = useAuth();
+  
+  const handleLogin = async () => {
+    try {
+      await login("test@example.com", "password");
+    } catch (err) {
+      // Error is already set in the context
+    }
+  };
+
   return (
     <div>
       <div data-testid="user">
         {currentUser ? JSON.stringify(currentUser) : "No user"}
       </div>
       <div data-testid="error">{error}</div>
-      <button onClick={() => login("test@example.com", "password")}>
-        Login
-      </button>
+      <button onClick={handleLogin}>Login</button>
       <button onClick={logout}>Logout</button>
       <button
         onClick={() =>
@@ -27,16 +34,27 @@ const TestComponent = () => {
   );
 };
 
-// Wrapper component for testing hooks
-const HookWrapper = ({ children }) => {
-  return <AuthProvider>{children}</AuthProvider>;
-};
-
 describe("AuthContext", () => {
+  let localStorageSpy;
+
+  beforeAll(() => {
+    // Create a proper mock for localStorage
+    const localStorageMock = {
+      getItem: jest.fn(),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+      clear: jest.fn(),
+    };
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true
+    });
+    localStorageSpy = localStorageMock;
+  });
+
   beforeEach(() => {
-    // Clear all mocks before each test
     jest.clearAllMocks();
-    localStorage.clear();
+    localStorageSpy.clear();
   });
 
   it("should provide auth context to children", () => {
@@ -53,7 +71,6 @@ describe("AuthContext", () => {
     const mockUser = { id: 1, email: "test@example.com", username: "testuser" };
     const mockToken = "mock-token";
 
-    // Mock successful login response
     global.fetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: true,
@@ -68,17 +85,17 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Click login button
-    await userEvent.click(screen.getByText("Login"));
+    await act(async () => {
+      await userEvent.click(screen.getByText("Login"));
+    });
 
-    // Verify localStorage was updated
-    expect(localStorage.setItem).toHaveBeenCalledWith("authToken", mockToken);
-    expect(localStorage.setItem).toHaveBeenCalledWith(
+    // Only token should be stored in localStorage
+    expect(localStorageSpy.setItem).toHaveBeenCalledWith("token", mockToken);
+    expect(localStorageSpy.setItem).not.toHaveBeenCalledWith(
       "user",
       JSON.stringify(mockUser)
     );
 
-    // Verify user state was updated
     await waitFor(() => {
       expect(screen.getByTestId("user")).toHaveTextContent(
         JSON.stringify(mockUser)
@@ -87,7 +104,6 @@ describe("AuthContext", () => {
   });
 
   it("should handle login failure", async () => {
-    // Mock failed login response
     global.fetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: false,
@@ -101,10 +117,10 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Click login button
-    await userEvent.click(screen.getByText("Login"));
+    await act(async () => {
+      await userEvent.click(screen.getByText("Login"));
+    });
 
-    // Verify error state was updated
     await waitFor(() => {
       expect(screen.getByTestId("error")).toHaveTextContent(
         "Invalid credentials"
@@ -113,10 +129,12 @@ describe("AuthContext", () => {
   });
 
   it("should handle logout", async () => {
-    // Set up initial logged in state
     const mockUser = { id: 1, email: "test@example.com", username: "testuser" };
-    localStorage.setItem("user", JSON.stringify(mockUser));
-    localStorage.setItem("authToken", "mock-token");
+    localStorageSpy.getItem.mockImplementation((key) => {
+      if (key === "user") return JSON.stringify(mockUser);
+      if (key === "token") return "mock-token";
+      return null;
+    });
 
     render(
       <AuthProvider>
@@ -124,14 +142,13 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Click logout button
-    await userEvent.click(screen.getByText("Logout"));
+    await act(async () => {
+      await userEvent.click(screen.getByText("Logout"));
+    });
 
-    // Verify localStorage was cleared
-    expect(localStorage.removeItem).toHaveBeenCalledWith("authToken");
-    expect(localStorage.removeItem).toHaveBeenCalledWith("user");
+    expect(localStorageSpy.removeItem).toHaveBeenCalledWith("token");
+    expect(localStorageSpy.removeItem).toHaveBeenCalledWith("user");
 
-    // Verify user state was cleared
     await waitFor(() => {
       expect(screen.getByTestId("user")).toHaveTextContent("No user");
     });
@@ -145,7 +162,6 @@ describe("AuthContext", () => {
     };
     const mockToken = "mock-token";
 
-    // Mock successful registration response
     global.fetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: true,
@@ -160,17 +176,17 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Click register button
-    await userEvent.click(screen.getByText("Register"));
+    await act(async () => {
+      await userEvent.click(screen.getByText("Register"));
+    });
 
-    // Verify localStorage was updated
-    expect(localStorage.setItem).toHaveBeenCalledWith("authToken", mockToken);
-    expect(localStorage.setItem).toHaveBeenCalledWith(
+    // Only token should be stored in localStorage
+    expect(localStorageSpy.setItem).toHaveBeenCalledWith("token", mockToken);
+    expect(localStorageSpy.setItem).not.toHaveBeenCalledWith(
       "user",
       JSON.stringify(mockUser)
     );
 
-    // Verify user state was updated
     await waitFor(() => {
       expect(screen.getByTestId("user")).toHaveTextContent(
         JSON.stringify(mockUser)
@@ -179,7 +195,6 @@ describe("AuthContext", () => {
   });
 
   it("should handle registration failure", async () => {
-    // Mock failed registration response
     global.fetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: false,
@@ -193,10 +208,10 @@ describe("AuthContext", () => {
       </AuthProvider>
     );
 
-    // Click register button
-    await userEvent.click(screen.getByText("Register"));
+    await act(async () => {
+      await userEvent.click(screen.getByText("Register"));
+    });
 
-    // Verify error state was updated
     await waitFor(() => {
       expect(screen.getByTestId("error")).toHaveTextContent(
         "Email already exists"
