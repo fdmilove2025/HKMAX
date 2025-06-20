@@ -6,6 +6,5 @@
 /backend/tests/__pycache__
 /backend/venv
 backend/.DS_Store
-backend/.env
 frontend/src/components/.DS_Store
 /backend/app/__pycache__
