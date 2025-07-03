@@ -39,7 +39,7 @@ export const PortfolioProvider = ({ children }) => {
   const fetchFinancialTips = useCallback(async () => {
     try {
       const response = await makeAuthenticatedRequest(
-        "/api/portfolio/tips",
+        "/api/tips",
         "GET"
       );
       setFinancialTips(response.tips);

@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import debounce from 'lodash.debounce';
+import { useAuth } from '../context/AuthContext';
+import { usePortfolio } from '../context/PortfolioContext';
 
 const ExploreSecuritiesPage = () => {
+  const { currentUser, makeAuthenticatedRequest } = useAuth();
+  const { resetQuestionnaire, currentStep } = usePortfolio();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedStock, setSelectedStock] = useState(null);
@@ -15,8 +19,6 @@ const ExploreSecuritiesPage = () => {
   const [isStockInfoLoading, setIsStockInfoLoading] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [hasQuestionnaire, setHasQuestionnaire] = useState(null);
-  const [isQuestionnaireFetching, setIsQuestionnaireFetching] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
   const userIsTyping = useRef(false);
   const searchInputRef = useRef(null);
@@ -65,6 +67,13 @@ const ExploreSecuritiesPage = () => {
       }
     }
   }, []);
+
+  // Reset questionnaire when navigating to this page
+  useEffect(() => {
+    if (currentStep !== 0) {
+      resetQuestionnaire();
+    }
+  }, [currentStep, resetQuestionnaire]);
 
   // Save watchlist to localStorage whenever it changes
   useEffect(() => {
@@ -150,76 +159,7 @@ const ExploreSecuritiesPage = () => {
     }
   };
 
-  // Check if user has a portfolio (completed questionnaire)
-  const checkQuestionnaire = async () => {
-    try {
-      setIsQuestionnaireFetching(true);
-      
-      // Check if we have a valid cached response
-      const now = Date.now();
-      if (portfolioHistoryCache && (now - lastFetchTime) < CACHE_DURATION) {
-        const hasPortfolio = portfolioHistoryCache.portfolios && portfolioHistoryCache.portfolios.length > 0;
-        setHasQuestionnaire(hasPortfolio);
-        return hasPortfolio;
-      }
 
-      const response = await fetch('http://localhost:5001/api/portfolio/history', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.status === 401) {
-        setHasQuestionnaire(false);
-        return false;
-      }
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      // Cache the response
-      setPortfolioHistoryCache(data);
-      setLastFetchTime(now);
-      
-      const hasPortfolio = data.portfolios && data.portfolios.length > 0;
-      setHasQuestionnaire(hasPortfolio);
-      return hasPortfolio;
-    } catch (error) {
-      console.error('Error checking questionnaire status:', error);
-      setHasQuestionnaire(false);
-      return false;
-    } finally {
-      setIsQuestionnaireFetching(false);
-    }
-  };
-
-  // Check if user is logged in
-  const checkLogin = async () => {
-    try {
-      // Use cached response if available
-      const now = Date.now();
-      if (portfolioHistoryCache && (now - lastFetchTime) < CACHE_DURATION) {
-        return true;
-      }
-
-      const response = await fetch('http://localhost:5001/api/portfolio/history', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      return response.status !== 401;
-    } catch (error) {
-      console.error('Error checking login status:', error);
-      return false;
-    }
-  };
 
   // Handle analytics button click
   const handleAnalyticsClick = async () => {
@@ -227,23 +167,143 @@ const ExploreSecuritiesPage = () => {
     setIsFitLoading(true);
     setFitError(null);
     setFitAnalysis(null); // Clear old analysis
-    
+
     // No need to check login status since this button is only shown to logged-in users
     // with a completed questionnaire
-    
+
     // If they're logged in and have a portfolio, fetch the analysis
     fetchStockFitAnalysis(selectedStock.symbol);
   };
 
-  // Check login and questionnaire status when component mounts
+  // Check questionnaire status when component mounts and user changes
   useEffect(() => {
+    const checkQuestionnaire = async () => {
+      try {
+        // Only check if user is authenticated
+        if (!currentUser) {
+          console.log('No current user, setting hasQuestionnaire to false');
+          setHasQuestionnaire(false);
+          return false;
+        }
+
+        // Check if we have a valid cached response
+        const now = Date.now();
+        if (portfolioHistoryCache && (now - lastFetchTime) < CACHE_DURATION) {
+          console.log('Using cached portfolio data:', portfolioHistoryCache);
+          const hasPortfolio = portfolioHistoryCache.portfolios && portfolioHistoryCache.portfolios.length > 0;
+          setHasQuestionnaire(hasPortfolio);
+          return hasPortfolio;
+        }
+
+        console.log('Fetching fresh portfolio history data...');
+        const data = await makeAuthenticatedRequest('/api/portfolio/history');
+        console.log('Portfolio history response:', data);
+
+        // Only cache successful responses with data
+        if (data && typeof data === 'object') {
+          setPortfolioHistoryCache(data);
+          setLastFetchTime(now);
+        }
+
+        const hasPortfolio = data && data.portfolios && data.portfolios.length > 0;
+        console.log('Has portfolio:', hasPortfolio);
+        setHasQuestionnaire(hasPortfolio);
+        return hasPortfolio;
+      } catch (error) {
+        console.error('Error checking questionnaire status:', error);
+        // Clear cache on error to allow retry
+        setPortfolioHistoryCache(null);
+        setLastFetchTime(0);
+        setHasQuestionnaire(false);
+        return false;
+      }
+    };
+
+    const fetchRecommendedSecurities = async () => {
+      try {
+        // Only fetch if user is authenticated
+        if (!currentUser) {
+          console.log('No current user, skipping recommended securities fetch');
+          return;
+        }
+
+        // Use cached response if available
+        const now = Date.now();
+        if (portfolioHistoryCache && (now - lastFetchTime) < CACHE_DURATION) {
+          console.log('Using cached data for recommended securities');
+          const data = portfolioHistoryCache;
+          if (data.portfolios && data.portfolios.length > 0) {
+            const latestPortfolio = data.portfolios[0];
+            if (latestPortfolio.securities && latestPortfolio.securities.length > 0) {
+              console.log('Found securities in cached portfolio:', latestPortfolio.securities);
+              const recommendedSecurities = latestPortfolio.securities.map(security => ({
+                symbol: security.ticker || security.symbol,
+                name: security.name,
+                type: security.assetClass || 'stock',
+                isRecommended: true
+              }));
+
+              setWatchlist(prevWatchlist => {
+                const existingSymbols = new Set(prevWatchlist.map(item => item.symbol));
+                const newSecurities = recommendedSecurities.filter(
+                  security => !existingSymbols.has(security.symbol)
+                );
+                console.log('Adding new recommended securities to watchlist:', newSecurities);
+                return [...prevWatchlist, ...newSecurities];
+              });
+            } else {
+              console.log('No securities found in cached portfolio');
+            }
+          } else {
+            console.log('No portfolios found in cached data');
+          }
+          return;
+        }
+
+        console.log('Fetching fresh data for recommended securities...');
+        const data = await makeAuthenticatedRequest('/api/portfolio/history');
+        console.log('Fresh portfolio data for securities:', data);
+
+        // Only cache successful responses with data
+        if (data && typeof data === 'object') {
+          setPortfolioHistoryCache(data);
+          setLastFetchTime(now);
+        }
+
+        if (data && data.portfolios && data.portfolios.length > 0) {
+          const latestPortfolio = data.portfolios[0];
+          if (latestPortfolio.securities && latestPortfolio.securities.length > 0) {
+            console.log('Found securities in fresh portfolio:', latestPortfolio.securities);
+            const recommendedSecurities = latestPortfolio.securities.map(security => ({
+              symbol: security.ticker || security.symbol,
+              name: security.name,
+              type: security.assetClass || 'stock',
+              isRecommended: true
+            }));
+
+            setWatchlist(prevWatchlist => {
+              const existingSymbols = new Set(prevWatchlist.map(item => item.symbol));
+              const newSecurities = recommendedSecurities.filter(
+                security => !existingSymbols.has(security.symbol)
+              );
+              console.log('Adding new recommended securities to watchlist:', newSecurities);
+              return [...prevWatchlist, ...newSecurities];
+            });
+          } else {
+            console.log('No securities found in fresh portfolio');
+          }
+        } else {
+          console.log('No portfolios found in fresh data');
+        }
+      } catch (error) {
+        console.error('Error fetching recommended securities:', error);
+      }
+    };
+
     const checkStatus = async () => {
-      const loggedIn = await checkLogin();
-      setIsLoggedIn(loggedIn);
-      
-      if (loggedIn) {
+      if (currentUser) {
         const hasPortfolio = await checkQuestionnaire();
-        
+
         if (hasPortfolio) {
           // If user has completed questionnaire, fetch recommended securities
           fetchRecommendedSecurities();
@@ -252,18 +312,32 @@ const ExploreSecuritiesPage = () => {
         setHasQuestionnaire(false);
       }
     };
-    
-    checkStatus();
-  }, []);
 
-  // Fetch recommended securities from portfolio history
-  const fetchRecommendedSecurities = async () => {
-    try {
-      // Use cached response if available
-      const now = Date.now();
-      if (portfolioHistoryCache && (now - lastFetchTime) < CACHE_DURATION) {
-        const data = portfolioHistoryCache;
-        if (data.portfolios && data.portfolios.length > 0) {
+    checkStatus();
+  }, [currentUser, makeAuthenticatedRequest, portfolioHistoryCache, lastFetchTime]);
+
+  // Function to manually refresh portfolio data (for debugging)
+  const refreshPortfolioData = async () => {
+    console.log('Manually refreshing portfolio data...');
+    setPortfolioHistoryCache(null);
+    setLastFetchTime(0);
+    setHasQuestionnaire(null);
+
+    if (currentUser) {
+      try {
+        const data = await makeAuthenticatedRequest('/api/portfolio/history');
+        console.log('Manual refresh - portfolio data:', data);
+
+        if (data && typeof data === 'object') {
+          setPortfolioHistoryCache(data);
+          setLastFetchTime(Date.now());
+        }
+
+        const hasPortfolio = data && data.portfolios && data.portfolios.length > 0;
+        setHasQuestionnaire(hasPortfolio);
+
+        if (hasPortfolio) {
+          // Refresh recommended securities too
           const latestPortfolio = data.portfolios[0];
           if (latestPortfolio.securities && latestPortfolio.securities.length > 0) {
             const recommendedSecurities = latestPortfolio.securities.map(security => ({
@@ -272,79 +346,23 @@ const ExploreSecuritiesPage = () => {
               type: security.assetClass || 'stock',
               isRecommended: true
             }));
-            
-            setWatchlist(prevWatchlist => {
-              const existingSymbols = new Set(prevWatchlist.map(item => item.symbol));
-              const newSecurities = recommendedSecurities.filter(
-                security => !existingSymbols.has(security.symbol)
-              );
-              return [...prevWatchlist, ...newSecurities];
-            });
+
+            setWatchlist(recommendedSecurities);
+            console.log('Refreshed watchlist with:', recommendedSecurities);
           }
         }
-        return;
+      } catch (error) {
+        console.error('Error during manual refresh:', error);
+        setHasQuestionnaire(false);
       }
-
-      const response = await fetch('http://localhost:5001/api/portfolio/history', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      // Cache the response
-      setPortfolioHistoryCache(data);
-      setLastFetchTime(now);
-      
-      if (data.portfolios && data.portfolios.length > 0) {
-        const latestPortfolio = data.portfolios[0];
-        if (latestPortfolio.securities && latestPortfolio.securities.length > 0) {
-          const recommendedSecurities = latestPortfolio.securities.map(security => ({
-            symbol: security.ticker || security.symbol,
-            name: security.name,
-            type: security.assetClass || 'stock',
-            isRecommended: true
-          }));
-          
-          setWatchlist(prevWatchlist => {
-            const existingSymbols = new Set(prevWatchlist.map(item => item.symbol));
-            const newSecurities = recommendedSecurities.filter(
-              security => !existingSymbols.has(security.symbol)
-            );
-            return [...prevWatchlist, ...newSecurities];
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching recommended securities:', error);
     }
   };
 
   const fetchStockFitAnalysis = async (ticker) => {
     try {
       // Skip checks since we've already done them in handleAnalyticsClick
-      
-      // Check if user is authenticated first
-      const response = await fetch('http://localhost:5001/api/stock/fit/' + ticker, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
+      const data = await makeAuthenticatedRequest(`/api/stock/fit/${ticker}`);
+
       if (data.error) {
         setFitError(data.error);
       } else {
@@ -523,7 +541,19 @@ const ExploreSecuritiesPage = () => {
         {/* Search Section */}
         <section className="glass-panel rounded-xl p-8 max-w-4xl mx-auto relative z-30">
           <div className="relative">
-            <h2 className="text-2xl mb-6 gradient-text">Security Search</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl gradient-text">Security Search</h2>
+              {/* Debug button - remove in production */}
+              {currentUser && (
+                <button
+                  onClick={refreshPortfolioData}
+                  className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                  title="Refresh portfolio data (debug)"
+                >
+                  🔄 Refresh Portfolio
+                </button>
+              )}
+            </div>
             <div className="relative z-40" ref={searchInputRef}>
               <input
                 type="text"
@@ -719,7 +749,7 @@ const ExploreSecuritiesPage = () => {
               )}
 
               {/* Portfolio fit analysis button for logged in users */}
-              {isLoggedIn && hasQuestionnaire && !showAnalytics && (
+              {currentUser && hasQuestionnaire && selectedStock && !showAnalytics && (
                 <div className="mt-8 flex justify-center">
                   <button
                     onClick={handleAnalyticsClick}

@@ -166,7 +166,7 @@ const HomePage = () => {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   
   useEffect(() => {
-    if (currentStep === 0) {
+    if (currentStep !== 0) {
       resetQuestionnaire();
     }
   }, [currentStep, resetQuestionnaire]);

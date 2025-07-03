@@ -1,6 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { usePortfolio } from '../context/PortfolioContext';
 
 const AboutPage = () => {
+  const { resetQuestionnaire, currentStep } = usePortfolio();
+
+  useEffect(() => {
+    if (currentStep !== 0) {
+      resetQuestionnaire();
+    }
+  }, [currentStep, resetQuestionnaire]);
   return (
     <div className="space-y-10">
       <section className="text-center">

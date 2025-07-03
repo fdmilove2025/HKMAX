@@ -39,9 +39,9 @@ const Header = () => {
               >
                 Home
               </Link>
-              {/* <Link to="/explore" className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+              <Link to="/explore" className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                 Explore Securities
-              </Link> */}
+              </Link>
               <Link
                 to="/questionnaire"
                 className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"

@@ -119,6 +119,14 @@ export const AuthProvider = ({ children }) => {
 
       // For other endpoints or non-2FA responses, check for errors
       if (!response.ok) {
+        // Handle token expiration (401 Unauthorized)
+        if (response.status === 401) {
+          console.log('Token expired, removing token and redirecting to login');
+          removeToken();
+          // Redirect to login page
+          window.location.href = '/login';
+          throw new Error("Session expired. Please log in again.");
+        }
         throw new Error(data.error || data.message || "Request failed");
       }
 
@@ -136,7 +144,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       throw error;
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, removeToken]);
 
   // Function to fetch current user data with debounce
   const fetchCurrentUser = useCallback(async () => {

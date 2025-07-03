@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { usePortfolio } from '../context/PortfolioContext';
 
 // API base URL - adjust if needed
 const API_URL = 'http://localhost:5001';
@@ -10,6 +11,7 @@ const ProfilePage = () => {
   const { currentUser, getAuthHeaders, makeAuthenticatedRequest, updateCurrentUser } = useAuth();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
+  const { resetQuestionnaire, currentStep } = usePortfolio();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
@@ -36,6 +38,13 @@ const ProfilePage = () => {
       setHasFaceId(currentUser.has_faceid === true);
     }
   }, [currentUser]);
+
+  // Reset questionnaire when navigating to this page
+  useEffect(() => {
+    if (currentStep !== 0) {
+      resetQuestionnaire();
+    }
+  }, [currentStep, resetQuestionnaire]);
 
   // Fetch latest user data on component mount
   useEffect(() => {

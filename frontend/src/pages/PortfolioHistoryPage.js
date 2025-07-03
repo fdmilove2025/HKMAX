@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import LoadingScreen from '../components/LoadingScreen';
 import { useAuth } from '../context/AuthContext';
+import { usePortfolio } from '../context/PortfolioContext';
 
 const PortfolioHistoryPage = () => {
   const navigate = useNavigate();
   const { getAuthHeaders } = useAuth();
+  const { resetQuestionnaire, currentStep } = usePortfolio();
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
@@ -17,6 +19,13 @@ const PortfolioHistoryPage = () => {
   useEffect(() => {
     fetchPortfolioHistory();
   }, []);
+
+  // Reset questionnaire when navigating to this page
+  useEffect(() => {
+    if (currentStep !== 0) {
+      resetQuestionnaire();
+    }
+  }, [currentStep, resetQuestionnaire]);
   
   const fetchPortfolioHistory = async () => {
     try {
